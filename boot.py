@@ -1,1 +1,1 @@
-print("hello from boot.py")
+print("hallo van boot.py")

@@ -1,4 +1,4 @@
-print("hello from main.py")
+print("hello van main.py")
 
 from machine import Pin, UART, ADC
 from time import sleep_ms
