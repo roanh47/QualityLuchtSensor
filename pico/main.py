@@ -132,9 +132,11 @@ async def handle_client(reader, writer):
             writer.close()
             return
 
-        resp = "HTTP/1.1 200 OK\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}".format(
-            ct, len(body), body)
+        body_bytes = body.encode("utf-8")
+        resp = "HTTP/1.1 200 OK\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n".format(
+            ct, len(body_bytes))
         writer.write(resp.encode("utf-8"))
+        writer.write(body_bytes)
         await writer.drain()
     except Exception as e:
         print("HTTP error:", e)

@@ -10,21 +10,24 @@ function showPage(name) {
 // ── Profile (saved in localStorage) ─────────────────────────────────────────
 
 function loadProfile() {
-    var naam = localStorage.getItem('naam') || '';
-    var leeftijd = localStorage.getItem('leeftijd') || '50 jaar';
-    var copd = localStorage.getItem('copd') || 'GOLD 3';
-
-    document.getElementById('input-naam').value = naam;
-    document.getElementById('input-leeftijd').value = leeftijd;
-    document.getElementById('input-copd').value = copd;
-    document.getElementById('display-name').textContent = naam || 'Patient naam';
+    try {
+        var naam = localStorage.getItem('naam') || '';
+        var leeftijd = localStorage.getItem('leeftijd') || '50 jaar';
+        var copd = localStorage.getItem('copd') || 'GOLD 3';
+        document.getElementById('input-naam').value = naam;
+        document.getElementById('input-leeftijd').value = leeftijd;
+        document.getElementById('input-copd').value = copd;
+        document.getElementById('display-name').textContent = naam || 'Patient naam';
+    } catch(e) {}
 }
 
 function saveProfile() {
     var naam = document.getElementById('input-naam').value.trim();
-    localStorage.setItem('naam', naam);
-    localStorage.setItem('leeftijd', document.getElementById('input-leeftijd').value);
-    localStorage.setItem('copd', document.getElementById('input-copd').value);
+    try {
+        localStorage.setItem('naam', naam);
+        localStorage.setItem('leeftijd', document.getElementById('input-leeftijd').value);
+        localStorage.setItem('copd', document.getElementById('input-copd').value);
+    } catch(e) {}
     document.getElementById('display-name').textContent = naam || 'Patient naam';
     showPage('overzicht');
 }
