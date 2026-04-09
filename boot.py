@@ -4,7 +4,7 @@ print("▶️ Booting...")
 import network
 import time
 
-SSID = "KwaliteitLuchtSensor™"
+SSID = "QualityLuchtSensor™"
 
 ap = network.WLAN(network.AP_IF)
 ap.active(False)
