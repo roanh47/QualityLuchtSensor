@@ -1,8 +1,9 @@
-const CACHE_NAME = "qualitylucht-pwa-v1";
+const CACHE_NAME = "qualitylucht-pwa-v2";
 const ASSETS = [
   "./",
   "./index.html",
   "./style.css",
+  "./logo.png",
   "./iOS-WiFi.png",
   "./Android-WiFi.png",
   "./manifest.webmanifest"
