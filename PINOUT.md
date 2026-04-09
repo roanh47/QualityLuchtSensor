@@ -2,5 +2,7 @@
 | -          | -     | -           |
 | GPIO0 (TX) | RXD   | -           |
 | GPIO1 (RX) | TXD   | -           |
-| GND        | GND   | -           |
 | GP26       | -     | DATA        |
+| GND        | GND   | GND         |
+| VBUS       | 5V    | -           |
+| 3V3        | -     | 3.3V        |

@@ -13,6 +13,12 @@ uart = UART(0, baudrate=9600, tx=Pin(0), rx=Pin(1))
 buf = bytearray()
 sensor = ADC(Pin(26))
 
+pico_led = Pin("LED", Pin.OUT)
+rode_led  = Pin(15, Pin.OUT)
+
+# PM2.5 grens voor COPD-patiënten (EU 24u-limiet; >25 µg/m³ verhoogt exacerbatierisico)
+PM25_COPD_DREMPEL = 25.0
+
 pm25 = 0.0
 pm10 = 0.0
 temp = 0.0
@@ -38,7 +44,10 @@ def process_uart():
         pm25 = (frame[2] + (frame[3] << 8)) / 10
         pm10 = (frame[4] + (frame[5] << 8)) / 10
         temp = lees_temperatuur_c()
+        rode_led.value(1 if pm25 >= PM25_COPD_DREMPEL else 0)
         print("PM2.5:", pm25, "ug/m3 | PM10:", pm10, "ug/m3 | Temp:", round(temp, 1), "C")
+        return True
+    return False
 
 
 # ── Network ───────────────────────────────────────────────────────────────────
@@ -137,7 +146,10 @@ async def handle_client(reader, writer):
 
 async def uart_task():
     while True:
-        process_uart()
+        if process_uart():
+            pico_led.on()
+            await asyncio.sleep_ms(100)
+            pico_led.off()
         await asyncio.sleep_ms(50)
 
 async def main():
