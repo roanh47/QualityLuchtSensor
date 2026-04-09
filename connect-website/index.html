@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="nl">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<meta name="theme-color" content="#ffffff">
+	<title>Verbinden met QualityLuchtSensor</title>
+	<link rel="manifest" href="./manifest.webmanifest">
+	<link rel="icon" href="./iOS-WiFi.png" type="image/png">
+	<link rel="apple-touch-icon" href="./iOS-WiFi.png">
+	<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+	<main class="container">
+		<header class="hero">
+			<h1>Verbind met de Pico hotspot</h1>
+			<p>
+				Deze captive portal werkt zonder app-installatie. Verbind alleen met het wifi-netwerk van de Pico.
+			</p>
+		</header>
+
+		<section class="card" aria-labelledby="iphone-title">
+			<h2 id="iphone-title">Voor iPhone: Verbinding maken met een wifinetwerk</h2>
+			<img src="./iOS-WiFi.png" alt="Voorbeeld van wifi-instellingen op iPhone" loading="lazy">
+			<ol>
+				<li>Ga vanaf het beginscherm naar <strong>Instellingen</strong> en tik op <strong>Wifi</strong>.</li>
+				<li>Tik om wifi in te schakelen. Je iPhone zoekt nu automatisch naar beschikbare wifinetwerken.</li>
+				<li>Tik op de naam van het wifinetwerk van de Pico. Vul indien nodig het wachtwoord in of ga akkoord met de voorwaarden.</li>
+				<li>Controleer of er een blauw vinkje naast de netwerknaam staat en een wifi-symbool boven in beeld. Dan ben je verbonden.</li>
+			</ol>
+		</section>
+
+		<section class="card" aria-labelledby="android-title">
+			<h2 id="android-title">Voor Android: Wifi inschakelen en verbinden</h2>
+			<img src="./Android-WiFi.png" alt="Voorbeeld van wifi-instellingen op Android" loading="lazy">
+			<ol>
+				<li>Open de app <strong>Instellingen</strong> op je toestel.</li>
+				<li>Tik op <strong>Netwerk en internet</strong> en daarna op <strong>Internet</strong>.</li>
+				<li>Zet <strong>Wifi</strong> aan.</li>
+				<li>Tik op het netwerk van de Pico. Als er een slotje staat, voer je het wachtwoord in.</li>
+				<li>Na verbinden zie je onder de netwerknaam <strong>Verbonden</strong>. Het netwerk wordt opgeslagen voor volgende keren.</li>
+			</ol>
+			<p class="tip">Tip: Je kunt vaak ook vanaf de bovenkant omlaag vegen en op het wifi-icoon tikken om snel bij de wifi-instellingen te komen.</p>
+		</section>
+
+		<footer class="footer">
+			<p>Als je verbonden bent met de Pico hotspot, opent deze portal automatisch.</p>
+		</footer>
+	</main>
+
+	<script>
+		if ("serviceWorker" in navigator) {
+			navigator.serviceWorker.register("./service-worker.js").catch(function () {});
+		}
+	</script>
+</body>
+</html>
