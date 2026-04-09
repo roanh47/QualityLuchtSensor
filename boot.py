@@ -1,19 +1,17 @@
-print("hallo van boot.py")
+print("▶️ Booting...")
 # boot.py
 # Minimal boot script: configureer de Pico W als Access Point
 import network
 import time
 
-SSID = "TEST4"
+SSID = "KwaliteitLuchtSensor™"
 
 ap = network.WLAN(network.AP_IF)
+ap.active(False)
+time.sleep(0.5)
 ap.active(True)
-# Gebruik 'ssid' parameter op Pico W; geen authmode nodig voor open AP
-# Stel WPA2-wachtwoord in (min. 8 tekens)
-ap.config(ssid=SSID, password="4test123")
-ap.ifconfig(('192.168.4.1', '255.255.255.0', '192.168.4.1', '8.8.8.8'))
-# korte pauze zodat interface opkomt
+ap.ifconfig(('192.168.4.1', '255.255.255.0', '192.168.4.1', '192.168.4.1'))
+ap.config(ssid=SSID, security=0)
 time.sleep(1)
 print('Access Point geactiveerd:', SSID)
 print('IP-config:', ap.ifconfig())
-

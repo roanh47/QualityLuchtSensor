@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="nl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>KwaliteitLuchtSensor™</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="portal">
+        <div class="header">
+            <h1>KwaliteitLuchtSensor™</h1>
+            <p class="subtitle">NSE Leerteam 4</p>
+        </div>
+
+        <div class="card">
+            <h2>Sensordata</h2>
+            <div class="readings">
+                <div class="reading">
+                    <span class="label">PM2.5</span>
+                    <span class="value" id="pm25">--</span>
+                    <span class="unit">&#956;g/m&#179;</span>
+                </div>
+                <div class="reading">
+                    <span class="label">PM10</span>
+                    <span class="value" id="pm10">--</span>
+                    <span class="unit">&#956;g/m&#179;</span>
+                </div>
+                <div class="reading">
+                    <span class="label">Temperatuur</span>
+                    <span class="value" id="temp">--</span>
+                    <span class="unit">&#176;C</span>
+                </div>
+            </div>
+            <p class="update-info" id="update-info">Laden...</p>
+        </div>
+    </div>
+    <script src="/script.js"></script>
+</body>
+</html>
