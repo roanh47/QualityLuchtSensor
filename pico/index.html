@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>COPD overzicht</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+  <!-- ── Overzicht ── -->
+  <main class="content page active" id="page-overzicht">
+    <div class="page-title">Home pagina</div>
+    <h1 class="patient-name" id="display-name">Patient naam</h1>
+    <hr class="divider" />
+
+    <div class="status-card">
+      <div class="status-row"><strong id="status-label">Goed</strong></div>
+      <div class="status-row">Laatste update <span id="update-time">--</span></div>
+    </div>
+
+    <div class="metric-grid">
+      <article class="metric-card">
+        <div class="metric-label">PM2.5</div>
+        <div class="metric-value" id="pm25">--</div>
+        <div class="metric-unit">µg/m³</div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-label">PM10</div>
+        <div class="metric-value" id="pm10">--</div>
+        <div class="metric-unit">µg/m³</div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-label">Temperatuur</div>
+        <div class="metric-value" id="temp">--</div>
+        <div class="metric-unit">°C</div>
+      </article>
+      <article class="metric-card empty"></article>
+    </div>
+
+    <section class="alert-card">
+      <div class="alert-header">
+        <div class="alert-left">
+          <span class="red-dot"></span>
+          <span>Luchtkwaliteit status</span>
+        </div>
+      </div>
+      <div class="chart-box">Grafiek</div>
+    </section>
+
+    <section class="accordion">
+      <div class="accordion-header">
+        <span>Symptomen</span>
+        <span>⌄</span>
+      </div>
+    </section>
+  </main>
+
+  <!-- ── Trends ── -->
+  <main class="content page" id="page-trends">
+    <div class="page-title">Trends</div>
+    <h1 class="patient-name">Trends</h1>
+    <hr class="divider" />
+    <div class="status-card">
+      <div class="status-row">Geen historische data beschikbaar.</div>
+    </div>
+  </main>
+
+  <!-- ── Profiel ── -->
+  <main class="content page" id="page-profiel">
+    <div class="page-title">Instellingen</div>
+    <h1 class="patient-name">Profiel</h1>
+    <hr class="divider" />
+
+    <div class="profile-card">
+      <label class="profile-label">Naam patient</label>
+      <input class="profile-input" id="input-naam" type="text" placeholder="Naam" />
+
+      <div class="profile-row-2">
+        <div>
+          <label class="profile-label">Leeftijd</label>
+          <select class="profile-select" id="input-leeftijd">
+            <option>18 jaar</option><option>20 jaar</option><option>25 jaar</option>
+            <option>30 jaar</option><option>35 jaar</option><option>40 jaar</option>
+            <option>45 jaar</option><option selected>50 jaar</option><option>55 jaar</option>
+            <option>60 jaar</option><option>65 jaar</option><option>70 jaar</option>
+            <option>75 jaar</option><option>80 jaar</option><option>85+ jaar</option>
+          </select>
+        </div>
+        <div>
+          <label class="profile-label">COPD fase</label>
+          <select class="profile-select" id="input-copd">
+            <option>GOLD 1</option><option>GOLD 2</option>
+            <option selected>GOLD 3</option><option>GOLD 4</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="toggle-card">
+      <span class="toggle-label">Pro modus</span>
+      <label class="toggle">
+        <input type="checkbox" id="toggle-pro">
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+      </label>
+    </div>
+
+    <div class="profile-card">
+      <strong class="profile-label" style="font-size:15px">Waarden toevoegen</strong>
+      <div class="toggle-grid">
+        <div class="toggle-row">
+          <span class="toggle-label">PM2.5</span>
+          <label class="toggle"><input type="checkbox" checked><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">Temp</span>
+          <label class="toggle"><input type="checkbox" checked><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">PM10</span>
+          <label class="toggle"><input type="checkbox" checked><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">Lorem</span>
+          <label class="toggle"><input type="checkbox"><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
+        </div>
+      </div>
+    </div>
+
+    <button class="save-btn" onclick="saveProfile()">Opslaan</button>
+  </main>
+
+  <!-- ── Bottom nav ── -->
+  <nav class="bottom-nav" aria-label="Navigatie onderaan">
+    <button class="nav-item active" onclick="showPage('overzicht')"><span class="icon">★</span>Overzicht</button>
+    <button class="nav-item" onclick="showPage('trends')"><span class="icon">★</span>Trends</button>
+    <button class="nav-item" onclick="showPage('profiel')"><span class="icon">★</span>Profiel</button>
+  </nav>
+
+  <script src="./script.js"></script>
+</body>
+</html>

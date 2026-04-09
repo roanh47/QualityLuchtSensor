@@ -1,0 +1,304 @@
+:root {
+  --bg: #f7f7f7;
+  --card: #dddddd;
+  --card-dark: #707070;
+  --text: #111111;
+  --muted: #6f6f6f;
+  --line: #666666;
+  --blue: #3b82f6;
+  --star: #9ca3af;
+  --danger: #ff2a2a;
+  --nav-h: 62px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  font-family: 'Inter', sans-serif;
+  color: var(--text);
+}
+
+/* ── scrollable content area, leaves room for fixed nav ── */
+.content {
+  min-height: 100%;
+  padding: 18px 18px calc(var(--nav-h) + 16px);
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 15px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.patient-name {
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.divider {
+  border: none;
+  border-top: 1.5px solid var(--line);
+  margin-bottom: 14px;
+}
+
+/* ── status card ── */
+.status-card {
+  background: var(--card);
+  border-radius: 18px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.status-row {
+  padding: 8px 14px;
+  font-size: 15px;
+}
+
+.status-row + .status-row {
+  border-top: 1.2px solid var(--line);
+}
+
+/* ── metric grid: always 2×2 ── */
+.metric-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.metric-card {
+  background: var(--card);
+  border-radius: 18px;
+  min-height: 110px;
+  padding: 12px 14px 10px;
+}
+
+.metric-label { font-size: 13px; color: var(--muted); margin-bottom: 2px; }
+.metric-chevron { font-size: 12px; color: var(--muted); }
+.metric-value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+.metric-unit { font-size: 12px; color: var(--muted); }
+
+.metric-card.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #bbb;
+}
+
+/* ── alert + accordion ── */
+.alert-card, .accordion {
+  background: var(--card);
+  border-radius: 18px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.alert-header, .accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.alert-left { display: flex; align-items: center; gap: 8px; }
+
+.red-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--danger);
+  flex-shrink: 0;
+}
+
+.chart-box {
+  background: var(--card-dark);
+  height: 120px;
+  border-radius: 10px;
+  margin-top: 10px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 16px;
+}
+
+.accordion { margin-bottom: 0; }
+
+/* ── sticky bottom nav ── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: var(--nav-h);
+  background: #d5d5d5;
+  border-top: 1px solid #bcbcbc;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: center;
+  padding: 6px 10px env(safe-area-inset-bottom);
+  z-index: 100;
+}
+
+.nav-item {
+  text-align: center;
+  font-size: 12px;
+  color: var(--star);
+  font-weight: 500;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.nav-item .icon {
+  display: block;
+  font-size: 24px;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.nav-item.active { color: var(--blue); }
+
+/* ── page switching ── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── profile cards ── */
+.profile-card {
+  background: var(--card);
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.profile-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.profile-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: none;
+  background: #f0f0f0;
+  font-size: 15px;
+  font-family: inherit;
+  margin-bottom: 12px;
+}
+
+.profile-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.profile-select {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: none;
+  background: #f0f0f0;
+  font-size: 15px;
+  font-family: inherit;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+/* ── toggle switch ── */
+.toggle-card {
+  background: var(--card);
+  border-radius: 18px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.toggle-label {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.toggle input { display: none; }
+
+.toggle-track {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #aaa;
+  border-radius: 14px;
+  transition: background 0.2s;
+  position: relative;
+}
+
+.toggle input:checked + .toggle-track { background: #444; }
+
+.toggle-thumb {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 22px; height: 22px;
+  background: #fff;
+  border-radius: 50%;
+  transition: left 0.2s;
+}
+
+.toggle input:checked + .toggle-track .toggle-thumb { left: 25px; }
+
+.toggle-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin-top: 12px;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #ccc;
+}
+
+.toggle-row:nth-child(odd) { padding-right: 16px; border-right: 1px solid #ccc; }
+.toggle-row:nth-child(even) { padding-left: 16px; }
+.toggle-row:nth-last-child(-n+2) { border-bottom: none; }
+
+.save-btn {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: inherit;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+/* hide leftover mockup elements */
+.phone { display: contents; }
+.dynamic-island, .statusbar, .home-indicator { display: none; }
+.portal { display: none !important; }
