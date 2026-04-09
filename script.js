@@ -2,17 +2,20 @@ function fetchStatus() {
     fetch('/status')
         .then(function(r) { return r.json(); })
         .then(function(d) {
+            // Update phone interface values
             document.getElementById('pm25').textContent = d.pm25.toFixed(1);
             document.getElementById('pm10').textContent = d.pm10.toFixed(1);
-            document.getElementById('temp').textContent = d.temp.toFixed(1);
+            document.getElementById('temp').textContent = d.temp.toFixed(1) + '°C';
+            
             var now = new Date();
-            document.getElementById('update-info').textContent =
-                'Bijgewerkt om ' + now.getHours() + ':' +
-                String(now.getMinutes()).padStart(2, '0') + ':' +
-                String(now.getSeconds()).padStart(2, '0');
+            var hours = String(now.getHours()).padStart(2, '0');
+            var minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('update-time').textContent = hours + ':' + minutes;
         })
         .catch(function() {
-            document.getElementById('update-info').textContent = 'Geen verbinding met sensor';
+            document.getElementById('pm25').textContent = '--';
+            document.getElementById('pm10').textContent = '--';
+            document.getElementById('temp').textContent = '--';
         });
 }
 
