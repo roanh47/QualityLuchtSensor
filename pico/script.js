@@ -69,7 +69,7 @@
   }
 
   function loadProfile() {
-    fetch('http://192.168.4.1/settings')
+    fetch('/settings')
       .then(function(r) { return r.json(); })
       .then(function(s) {
         document.getElementById('input-name').value = s.naam || '';
@@ -90,6 +90,7 @@
         document.getElementById('show-temp').checked = s.showtemp !== false;
         document.getElementById('show-gas').checked = s.showgas !== false;
         applyTheme();
+        updateThresholds();
         updateUI();
       })
       .catch(function() {
@@ -108,8 +109,45 @@
         document.getElementById('show-temp').checked = true;
         document.getElementById('show-gas').checked = true;
         applyTheme();
+        updateThresholds();
         updateUI();
       });
+  }
+
+  function saveProfile() {
+    var naam = document.getElementById('input-name').value.trim();
+    var data = {
+      naam: naam,
+      leeftijd: document.getElementById('input-age').value,
+      copd: document.getElementById('input-copd').value,
+      promode: state.proMode,
+      themekey: state.themeKey,
+      showpm25: state.enabledMetrics.pm25,
+      showpm10: state.enabledMetrics.pm10,
+      showtemp: state.enabledMetrics.temp,
+      showgas: state.enabledMetrics.gas,
+      symptoms: state.selectedSymptoms
+    };
+    fetch('/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).then(function() {
+      document.getElementById('display-name').textContent = naam || 'Patient';
+      showPage('overzicht');
+    }).catch(function() {
+      document.getElementById('display-name').textContent = naam || 'Patient';
+      showPage('overzicht');
+    });
+  }
+
+  function updateThresholds() {
+    var t = GOLD_THRESHOLDS[state.goldPhase] || GOLD_THRESHOLDS['GOLD 3'];
+    document.getElementById('thresh-green').textContent = '< ' + t.green;
+    document.getElementById('thresh-yellow').textContent = t.green + ' – ' + t.yellow;
+    document.getElementById('thresh-orange').textContent = t.yellow + ' – ' + t.orange;
+    document.getElementById('thresh-red').textContent = t.orange + ' – ' + t.red;
+    document.getElementById('thresh-purple').textContent = '> ' + t.red;
   }
 
   function updateVisibility() {
@@ -230,9 +268,13 @@
   }
 
   function fetchStatus() {
-    fetch('http://192.168.4.1/status')
-      .then(function(r) { return r.json(); })
+    fetch('/status')
+      .then(function(r) {
+        console.log('status response:', r.status);
+        return r.json();
+      })
       .then(function(d) {
+        console.log('status data:', JSON.stringify(d));
         state.sensorData = {
           pm25: d.pm25 || 0,
           pm10: d.pm10 || 0,
@@ -241,6 +283,7 @@
         };
         state.prevStatusLvl = state.statusLvl;
         state.statusLvl = d.statusLevel || 1;
+        console.log('level:', state.statusLvl, 'pm25:', state.sensorData.pm25, 'temp:', state.sensorData.temp);
         if (state.statusLvl > state.prevStatusLvl && state.prevStatusLvl > 0) {
           state.worseningAlert = true;
           setTimeout(function() { state.worseningAlert = false; updateUI(); }, 10000);
@@ -248,7 +291,8 @@
         pushTrend(state.sensorData.pm25);
         updateUI();
       })
-      .catch(function() {
+      .catch(function(err) {
+        console.error('fetchStatus error:', err);
         state.sensorData = { pm25: 0, pm10: 0, temp: 0, gas: 0 };
         updateUI();
       });
@@ -287,6 +331,11 @@
   document.getElementById('bottom-nav').addEventListener('click', function(e) {
     var btn = e.target.closest('.nav-item');
     if (btn) showPage(btn.getAttribute('data-page'));
+  });
+
+  document.getElementById('input-copd').addEventListener('change', function(e) {
+    state.goldPhase = e.target.value;
+    updateThresholds();
   });
 
   document.getElementById('toggle-pro').addEventListener('change', function(e) {

@@ -426,6 +426,34 @@ body {
   color: var(--ink);
 }
 
+/* ── thresholds card ── */
+.thresholds-card { padding: 14px 16px; }
+.threshold-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.threshold-row:last-child { border-bottom: none; }
+.threshold-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.threshold-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  flex: 1;
+}
+.threshold-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── toggle switch ── */
 .toggle-card {
   display: flex;
