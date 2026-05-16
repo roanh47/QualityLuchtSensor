@@ -45,40 +45,50 @@ function App() {
     return 4  // Blijf binnen
   }
 
+  // Demo data for testing when Pico is not connected
+  const demoSensorData = {
+    pm25: 18.5,
+    pm10: 32.1,
+    temp: 14.2,
+    gas: 120
+  }
+
   // Fetch sensor data from Pico every 5 seconds
   React.useEffect(() => {
+    let mounted = true
+
     const fetchSensorData = async () => {
       try {
-        // Try to fetch from Pico's /status endpoint
-        // The Pico runs on its own WiFi AP, typically at 192.168.4.1
         const response = await fetch('http://192.168.4.1/status', {
           method: 'GET',
           headers: { 'Accept': 'application/json' }
         })
         if (response.ok) {
           const data = await response.json()
-          setSensorData({
-            pm25: data.pm25 || 0,
-            pm10: data.pm10 || 0,
-            temp: data.temp || 0,
-            gas: data.gas || 0  // Gas sensor value from Pico
-          })
-          // Update status based on PM2.5
-          if (data.pm25) {
-            setStatusLvl(pm25ToStatusLvl(data.pm25))
+          if (mounted) {
+            setSensorData({
+              pm25: data.pm25 || 0,
+              pm10: data.pm10 || 0,
+              temp: data.temp || 0,
+              gas: data.gas || 0
+            })
+            if (data.pm25) {
+              setStatusLvl(pm25ToStatusLvl(data.pm25))
+            }
           }
         }
       } catch (err) {
-        // Pico not reachable (not connected to its WiFi) - that's ok, use defaults
         console.log('Pico not reachable, using demo data')
+        if (mounted) {
+          setSensorData(demoSensorData)
+          setStatusLvl(2) // Goed status for demo data
+        }
       }
     }
 
-    // Fetch immediately
     fetchSensorData()
-    // Then every 5 seconds
     const interval = setInterval(fetchSensorData, 5000)
-    return () => clearInterval(interval)
+    return () => { mounted = false; clearInterval(interval) }
   }, [])
 
   return (

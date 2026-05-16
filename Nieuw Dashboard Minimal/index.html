@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>COPD Luchtkwaliteit</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+  <!-- ── Theme data (hidden) ── -->
+  <script>
+    window.THEMES = {
+      sky: {
+        name: 'Hemelblauw',
+        bgA: '#c9e0f5', bgB: '#e8d5ea', bgC: '#f8e4c9',
+        ink: '#1a2332', inkSoft: 'rgba(26,35,50,0.62)', inkMuted: 'rgba(26,35,50,0.42)',
+        glassBg: 'rgba(255,255,255,0.55)', glassBorder: 'rgba(255,255,255,0.9)',
+        accent: '#2b6fd6', s1: '#3ba776', s2: '#b5a730', s3: '#d48837', s4: '#c94a3a',
+      },
+      forest: {
+        name: 'Dennenbos',
+        bgA: '#d4e4d0', bgB: '#b8dbd0', bgC: '#f0e9cf',
+        ink: '#1c2820', inkSoft: 'rgba(28,40,32,0.62)', inkMuted: 'rgba(28,40,32,0.42)',
+        glassBg: 'rgba(255,255,255,0.55)', glassBorder: 'rgba(255,255,255,0.9)',
+        accent: '#2f8558', s1: '#3ba776', s2: '#b5a730', s3: '#d48837', s4: '#c94a3a',
+      },
+      dusk: {
+        name: 'Schemer',
+        bgA: '#f3c8b4', bgB: '#d9b5d4', bgC: '#a5bce0',
+        ink: '#1f1a2e', inkSoft: 'rgba(31,26,46,0.64)', inkMuted: 'rgba(31,26,46,0.44)',
+        glassBg: 'rgba(255,255,255,0.52)', glassBorder: 'rgba(255,255,255,0.85)',
+        accent: '#7a3fc4', s1: '#3ba776', s2: '#b5a730', s3: '#d48837', s4: '#c94a3a',
+      }
+    };
+    window.STATUS_LEVELS = [
+      { key: 1, title: 'Uitstekend', advice: 'Perfect moment om naar buiten te gaan.', longAdvice: 'De luchtkwaliteit is goed en je symptomen zijn stabiel.', colorKey: 's1' },
+      { key: 2, title: 'Goed', advice: 'Je kan veilig naar buiten.', longAdvice: 'De lucht is acceptabel. Houd rekening met korte activiteiten.', colorKey: 's2' },
+      { key: 3, title: 'Voorzichtig', advice: 'Beperk je tijd buiten.', longAdvice: 'De fijnstofwaarden zijn verhoogd. Vermijd inspanning.', colorKey: 's3' },
+      { key: 4, title: 'Blijf binnen', advice: 'Ga vandaag niet naar buiten.', longAdvice: 'Lucht- en symptoomwaarden zijn te hoog.', colorKey: 's4' },
+    ];
+    window.SYMPTOMS = [
+      { id: 'benauwd', label: 'Benauwd' },
+      { id: 'hoest', label: 'Hoesten' },
+      { id: 'slijm', label: 'Slijm' },
+      { id: 'moe', label: 'Moe' },
+      { id: 'piep', label: 'Piepende ademhaling' },
+    ];
+    window.Icon = function(name, size, color) {
+      var s = size || 20, c = color || 'currentColor';
+      var p = 'stroke="' + c + '" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"';
+      var paths = {
+        sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>',
+        'cloud-sun': '<path d="M13 4v2M4.9 7.9l1.4 1.4M3 14h2M19.1 7.9l-1.4 1.4M13 10a3 3 0 0 1 3 3"/><path d="M7 18h10a3 3 0 0 0 0-6 4 4 0 0 0-7.9-1A3 3 0 0 0 7 18z"/>',
+        cloud: '<path d="M7 18h10a4 4 0 0 0 0-8 5 5 0 0 0-9.6-1A4 4 0 0 0 7 18z"/>',
+        alert: '<path d="M12 3L2 20h20L12 3z"/><path d="M12 10v5M12 18v.5"/>',
+        home: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1v-9z"/>',
+        user: '<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>',
+        trend: '<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>',
+        plus: '<path d="M12 5v14M5 12h14"/>',
+      };
+      var d = paths[name] || '';
+      return '<svg width="' + s + '" height="' + s + '" viewBox="0 0 24 24" style="display:block;flex-shrink:0">' + d + '</svg>';
+    };
+  </script>
+
+  <!-- ── Ambient background ─── -->
+  <div class="ambient-bg" id="ambient-bg"></div>
+
+  <!-- ── Page: Overzicht ── -->
+  <section class="page active" id="page-overzicht">
+    <div class="page-scroll">
+      <div class="greeting">
+        <div class="greeting-date" id="greeting-date"></div>
+        <div class="greeting-name">Hallo, <span id="display-name">Patient</span></div>
+      </div>
+
+      <!-- Status hero -->
+      <div class="glass-card status-hero" id="status-hero">
+        <div class="status-icon-wrap" id="status-icon-wrap"></div>
+        <div class="status-title" id="status-title">--</div>
+        <div class="status-advice" id="status-advice">--</div>
+        <div class="status-meta">
+          <span class="live-dot"></span>
+          Live &bull; laatste update <span id="update-time">--:--</span>
+        </div>
+      </div>
+
+      <!-- Temperature card -->
+      <div class="glass-card temp-card">
+        <div class="temp-icon" id="temp-icon"></div>
+        <div class="temp-info">
+          <div class="temp-label">Buitentemperatuur</div>
+          <div class="temp-value"><span id="temp-display">--</span> <span class="temp-unit">°C</span></div>
+          <div class="temp-hint" id="temp-hint">--</div>
+        </div>
+      </div>
+
+      <!-- Metrics (pro mode) -->
+      <div class="metrics-section" id="metrics-section" style="display:none">
+        <div class="section-header">Live metingen</div>
+        <div class="metrics-grid">
+          <div class="glass-card metric-card" id="card-pm25">
+            <div class="metric-label">PM2.5</div>
+            <div class="metric-sub">Fijnstof</div>
+            <div class="metric-value"><span id="pm25-display">--</span></div>
+            <div class="metric-bar"><div class="metric-bar-fill" id="bar-pm25"></div></div>
+            <div class="metric-norm">grens 25 µg/m³</div>
+          </div>
+          <div class="glass-card metric-card" id="card-pm10">
+            <div class="metric-label">PM10</div>
+            <div class="metric-sub">Fijnstof</div>
+            <div class="metric-value"><span id="pm10-display">--</span></div>
+            <div class="metric-bar"><div class="metric-bar-fill" id="bar-pm10"></div></div>
+            <div class="metric-norm">grens 25 µg/m³</div>
+          </div>
+          <div class="glass-card metric-card" id="card-temp">
+            <div class="metric-label">Temperatuur</div>
+            <div class="metric-sub">Buitenlucht</div>
+            <div class="metric-value"><span id="temp-m-display">--</span></div>
+          </div>
+          <div class="glass-card metric-card" id="card-gas">
+            <div class="metric-label">Gas</div>
+            <div class="metric-sub">LPG/CO/NO2</div>
+            <div class="metric-value"><span id="gas-display">--</span></div>
+            <div class="metric-bar"><div class="metric-bar-fill" id="bar-gas"></div></div>
+            <div class="metric-norm">grens 1000 ppm</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Symptoms -->
+      <div class="glass-card symptom-card">
+        <div class="symptom-header">
+          <div>
+            <div class="symptom-title">Symptomen vandaag</div>
+            <div class="symptom-sub" id="symptom-sub">Stabiel</div>
+          </div>
+          <div class="symptom-add" id="symptom-add-btn">+</div>
+        </div>
+        <div class="symptom-tags" id="symptom-tags"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Page: Trends ── -->
+  <section class="page" id="page-trends">
+    <div class="page-scroll">
+      <div class="greeting">
+        <div class="greeting-date" id="trends-date"></div>
+        <div class="greeting-name">Trends</div>
+      </div>
+
+      <div class="glass-card trend-card">
+        <div class="trend-header">
+          <div>
+            <div class="trend-title">Luchtkwaliteit</div>
+            <div class="trend-sub">laatste 7 dagen</div>
+          </div>
+          <div class="trend-badge">PM2.5</div>
+        </div>
+        <div class="chart-container">
+          <svg id="trend-chart" viewBox="0 0 300 100" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="chart-legend">
+          <span class="legend-item"><span class="legend-dot" style="background:#2b6fd6"></span>PM2.5</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#ff6b6b;border-radius:1px;height:2px"></span>COPD grens (25)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Page: Profiel ── -->
+  <section class="page" id="page-profiel">
+    <div class="page-scroll">
+      <div class="greeting">
+        <div class="greeting-name">Profiel</div>
+      </div>
+
+      <div class="glass-card profile-card">
+        <label class="profile-label">Naam patient</label>
+        <input class="profile-input" id="input-name" type="text" placeholder="Naam" />
+
+        <div class="profile-row-2">
+          <div>
+            <label class="profile-label">Leeftijd</label>
+            <select class="profile-select" id="input-age">
+              <option>18 jaar</option><option>20 jaar</option><option>25 jaar</option>
+              <option>30 jaar</option><option>35 jaar</option><option>40 jaar</option>
+              <option>45 jaar</option><option selected>50 jaar</option><option>55 jaar</option>
+              <option>60 jaar</option><option>65 jaar</option><option>70 jaar</option>
+              <option>75 jaar</option><option>80 jaar</option><option>85+ jaar</option>
+            </select>
+          </div>
+          <div>
+            <label class="profile-label">COPD fase</label>
+            <select class="profile-select" id="input-copd">
+              <option>GOLD 1</option><option>GOLD 2</option>
+              <option selected>GOLD 3</option><option>GOLD 4</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-card toggle-card">
+        <span class="toggle-label">Pro modus</span>
+        <label class="toggle">
+          <input type="checkbox" id="toggle-pro">
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        </label>
+      </div>
+
+      <div class="glass-card theme-card">
+        <div class="profile-label">Kleurthema</div>
+        <div class="theme-options" id="theme-options"></div>
+      </div>
+
+      <div class="glass-card profile-card">
+        <strong class="profile-label" style="font-size:15px">Waarden weergeven</strong>
+        <div class="toggle-grid">
+          <div class="toggle-row">
+            <span class="toggle-label">PM2.5</span>
+            <label class="toggle"><input type="checkbox" id="show-pm25" checked><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-label">PM10</span>
+            <label class="toggle"><input type="checkbox" id="show-pm10" checked><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-label">Temperatuur</span>
+            <label class="toggle"><input type="checkbox" id="show-temp" checked><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-label">Gas</span>
+            <label class="toggle"><input type="checkbox" id="show-gas" checked><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
+          </div>
+        </div>
+      </div>
+
+      <button class="save-btn" id="save-btn">Opslaan</button>
+    </div>
+  </section>
+
+  <!-- ── Bottom nav ── -->
+  <nav class="bottom-nav" id="bottom-nav">
+    <button class="nav-item active" data-page="overzicht">
+      <span class="nav-icon" id="nav-home"></span>
+      <span class="nav-label">Overzicht</span>
+    </button>
+    <button class="nav-item" data-page="trends">
+      <span class="nav-icon" id="nav-trends"></span>
+      <span class="nav-label">Trends</span>
+    </button>
+    <button class="nav-item" data-page="profiel">
+      <span class="nav-icon" id="nav-profile"></span>
+      <span class="nav-label">Profiel</span>
+    </button>
+  </nav>
+
+  <!-- ── Symptom modal ── -->
+  <div class="modal-overlay" id="symptom-modal" style="display:none">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">Symptomen loggen</div>
+      <div class="modal-sub">Hoe voel je je nu?</div>
+      <div class="symptom-pills" id="symptom-pills"></div>
+      <div class="modal-save" id="modal-save">Opslaan</div>
+    </div>
+  </div>
+
+  <script src="./script.js"></script>
+</body>
+</html>
