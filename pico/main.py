@@ -113,6 +113,7 @@ async def handle_client(reader, writer):
 
         print("GET", path)
 
+        cors = ""
         if path in ("/", "/index.html"):
             body = read_file("index.html")
             ct = "text/html; charset=utf-8"
@@ -125,6 +126,7 @@ async def handle_client(reader, writer):
         elif path == "/status":
             body = status_json()
             ct = "application/json; charset=utf-8"
+            cors = "Access-Control-Allow-Origin: *\r\n"
         else:
             # Redirect everything else — this is what triggers the captive portal popup
             writer.write(REDIRECT.encode())
@@ -133,8 +135,8 @@ async def handle_client(reader, writer):
             return
 
         body_bytes = body.encode("utf-8")
-        resp = "HTTP/1.1 200 OK\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n".format(
-            ct, len(body_bytes))
+        resp = "HTTP/1.1 200 OK\r\nContent-Type: {}\r\nContent-Length: {}\r\n{}Connection: close\r\n\r\n".format(
+            ct, len(body_bytes), cors)
         writer.write(resp.encode("utf-8"))
         writer.write(body_bytes)
         await writer.drain()

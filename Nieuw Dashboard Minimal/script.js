@@ -207,14 +207,20 @@
   }
 
   function fetchStatus() {
-    fetch('/status')
+    fetch('http://192.168.4.1/status')
       .then(function(r) { return r.json(); })
       .then(function(d) {
-        state.sensorData = d;
+        state.sensorData = {
+          pm25: d.pm25 || 0,
+          pm10: d.pm10 || 0,
+          temp: d.temp || 0,
+          gas: d.gas || 0
+        };
         if (d.pm25 >= 25) state.statusLvl = 4;
         else if (d.pm25 >= 15) state.statusLvl = 3;
         else if (d.pm25 >= 10) state.statusLvl = 2;
         else state.statusLvl = 1;
+        pushTrend(state.sensorData.pm25);
         updateUI();
       })
       .catch(function() {
