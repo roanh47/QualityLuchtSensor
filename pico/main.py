@@ -1,4 +1,4 @@
-print("▶️ Starting main.py")
+print("▶️  Starting main.py")
 
 from machine import Pin, UART, ADC
 import network
@@ -6,6 +6,8 @@ import socket
 import gc
 import utime
 import uasyncio as asyncio
+
+import ujson
 
 # ── Sensor setup ─────────────────────────────────────────────────────────────
 
@@ -22,6 +24,51 @@ PM25_COPD_DREMPEL = 25.0
 pm25 = 0.0
 pm10 = 0.0
 temp = 0.0
+
+DEFAULT_SETTINGS = {
+    "naam": "",
+    "leeftijd": "50 jaar",
+    "copd": "GOLD 3",
+    "promode": False,
+    "themekey": "sky",
+    "showpm25": True,
+    "showpm10": True,
+    "showtemp": True,
+    "showgas": True,
+    "symptoms": []
+}
+
+GOLD_THRESHOLDS = {
+    "GOLD 1": {"green": 5, "yellow": 10, "orange": 20, "red": 25},
+    "GOLD 2": {"green": 4, "yellow": 8, "orange": 16, "red": 20},
+    "GOLD 3": {"green": 3, "yellow": 6, "orange": 12, "red": 16},
+    "GOLD 4": {"green": 2, "yellow": 5, "orange": 10, "red": 14}
+}
+
+def calc_status_level(pm25_val, gold_phase):
+    t = GOLD_THRESHOLDS.get(gold_phase, GOLD_THRESHOLDS["GOLD 3"])
+    if pm25_val >= t["red"]:
+        return 5
+    if pm25_val >= t["orange"]:
+        return 4
+    if pm25_val >= t["yellow"]:
+        return 3
+    if pm25_val >= t["green"]:
+        return 2
+    return 1
+
+def load_settings():
+    try:
+        with open("settings.json", "r") as f:
+            return ujson.loads(f.read())
+    except:
+        return dict(DEFAULT_SETTINGS)
+
+def save_settings(data):
+    with open("settings.json", "w") as f:
+        f.write(ujson.dumps(data))
+
+settings = load_settings()
 
 def lees_temperatuur_c():
     waarde = sensor.read_u16()
@@ -92,8 +139,9 @@ async def dns_task():
 # ── HTTP server ───────────────────────────────────────────────────────────────
 
 def status_json():
-    return '{{"uptime":{},"mem":{},"ip":"{}","pm25":{},"pm10":{},"temp":{}}}'.format(
-        utime.ticks_ms() // 1000, gc.mem_free(), AP_IP, pm25, pm10, round(temp, 1))
+    level = calc_status_level(pm25, settings.get("copd", "GOLD 3"))
+    return '{{"uptime":{},"mem":{},"ip":"{}","pm25":{},"pm10":{},"temp":{},"statusLevel":{}}}'.format(
+        utime.ticks_ms() // 1000, gc.mem_free(), AP_IP, pm25, pm10, round(temp, 1), level)
 
 def read_file(path):
     with open(path, "r") as f:
@@ -103,18 +151,50 @@ REDIRECT = "HTTP/1.1 302 Found\r\nLocation: http://{}/\r\nContent-Length: 0\r\nC
 
 async def handle_client(reader, writer):
     try:
-        raw = await asyncio.wait_for(reader.read(1024), timeout=3)
+        raw = await asyncio.wait_for(reader.read(2048), timeout=3)
         try:
-            path = raw.decode("utf-8", "ignore").split("\r\n")[0].split(" ")[1]
+            request_text = raw.decode("utf-8", "ignore")
+            first_line = request_text.split("\r\n")[0]
+            method = first_line.split(" ")[0]
+            path = first_line.split(" ")[1]
         except Exception:
+            method = "GET"
             path = "/"
         if "?" in path:
             path = path.split("?")[0]
 
-        print("GET", path)
+        print(method, path)
 
         cors = ""
-        if path in ("/", "/index.html"):
+        cors_headers = "Access-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\n"
+        if method == "OPTIONS":
+            body = ""
+            ct = "text/plain; charset=utf-8"
+            cors = cors_headers
+        elif method == "POST" and path == "/settings":
+            body_text = request_text.split("\r\n\r\n", 1)
+            if len(body_text) > 1:
+                try:
+                    new_settings = ujson.loads(body_text[1])
+                    settings.update(new_settings)
+                    save_settings(settings)
+                    body = '{"ok":true}'
+                    ct = "application/json; charset=utf-8"
+                    cors = cors_headers
+                except Exception as e:
+                    print("JSON error:", e)
+                    body = '{"ok":false}'
+                    ct = "application/json; charset=utf-8"
+                    cors = cors_headers
+            else:
+                body = '{"ok":false}'
+                ct = "application/json; charset=utf-8"
+                cors = cors_headers
+        elif method == "GET" and path == "/settings":
+            body = ujson.dumps(settings)
+            ct = "application/json; charset=utf-8"
+            cors = cors_headers
+        elif path in ("/", "/index.html"):
             body = read_file("index.html")
             ct = "text/html; charset=utf-8"
         elif path == "/style.css":
@@ -126,7 +206,7 @@ async def handle_client(reader, writer):
         elif path == "/status":
             body = status_json()
             ct = "application/json; charset=utf-8"
-            cors = "Access-Control-Allow-Origin: *\r\n"
+            cors = cors_headers
         else:
             # Redirect everything else — this is what triggers the captive portal popup
             writer.write(REDIRECT.encode())

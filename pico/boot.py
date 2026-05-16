@@ -1,4 +1,4 @@
-print("▶️ Booting...")
+print("▶️  Booting...")
 # boot.py
 # Minimal boot script: configureer de Pico W als Access Point
 import network
