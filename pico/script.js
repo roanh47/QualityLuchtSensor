@@ -148,6 +148,19 @@
     document.getElementById('thresh-orange').textContent = t.yellow + ' – ' + t.orange;
     document.getElementById('thresh-red').textContent = t.orange + ' – ' + t.red;
     document.getElementById('thresh-purple').textContent = '> ' + t.red;
+    document.getElementById('nox-thresh-green').textContent = '< 18000';
+    document.getElementById('nox-thresh-yellow').textContent = '18000 – 25000';
+    document.getElementById('nox-thresh-orange').textContent = '25000 – 35000';
+    document.getElementById('nox-thresh-red').textContent = '35000 – 45000';
+    document.getElementById('nox-thresh-purple').textContent = '> 45000';
+    document.getElementById('pm10-thresh-green').textContent = '< 20';
+    document.getElementById('pm10-thresh-yellow').textContent = '20 – 30';
+    document.getElementById('pm10-thresh-orange').textContent = '30 – 40';
+    document.getElementById('pm10-thresh-red').textContent = '40 – 50';
+    document.getElementById('pm10-thresh-purple').textContent = '> 50';
+    document.getElementById('temp-thresh-cold').textContent = '< 8';
+    document.getElementById('temp-thresh-mild').textContent = '8 – 18';
+    document.getElementById('temp-thresh-warm').textContent = '> 18';
   }
 
   function updateVisibility() {
