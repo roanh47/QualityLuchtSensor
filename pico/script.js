@@ -5,8 +5,8 @@
     proMode: false,
     statusLvl: 2,
     prevStatusLvl: 2,
-    sensorData: { pm25: 0, pm10: 0, temp: 0, gas: 0 },
-    enabledMetrics: { pm25: true, pm10: true, temp: true, gas: true },
+    sensorData: { pm25: 0, pm10: 0, temp: 0, nox: 0 },
+    enabledMetrics: { pm25: true, pm10: true, temp: true, nox: true },
     selectedSymptoms: [],
     goldPhase: 'GOLD 3',
     worseningAlert: false,
@@ -83,7 +83,7 @@
         state.enabledMetrics.pm25 = s.showpm25 !== false;
         state.enabledMetrics.pm10 = s.showpm10 !== false;
         state.enabledMetrics.temp = s.showtemp !== false;
-        state.enabledMetrics.gas = s.showgas !== false;
+        state.enabledMetrics.nox = s.showgas !== false;
         state.selectedSymptoms = s.symptoms || [];
         document.getElementById('show-pm25').checked = s.showpm25 !== false;
         document.getElementById('show-pm10').checked = s.showpm10 !== false;
@@ -102,7 +102,7 @@
         state.proMode = false;
         state.themeKey = 'sky';
         state.goldPhase = 'GOLD 3';
-        state.enabledMetrics = { pm25: true, pm10: true, temp: true, gas: true };
+        state.enabledMetrics = { pm25: true, pm10: true, temp: true, nox: true };
         state.selectedSymptoms = [];
         document.getElementById('show-pm25').checked = true;
         document.getElementById('show-pm10').checked = true;
@@ -125,7 +125,7 @@
       showpm25: state.enabledMetrics.pm25,
       showpm10: state.enabledMetrics.pm10,
       showtemp: state.enabledMetrics.temp,
-      showgas: state.enabledMetrics.gas,
+      showgas: state.enabledMetrics.nox,
       symptoms: state.selectedSymptoms
     };
     fetch('/settings', {
@@ -156,7 +156,7 @@
     document.getElementById('card-pm25').style.display = state.enabledMetrics.pm25 ? 'block' : 'none';
     document.getElementById('card-pm10').style.display = state.enabledMetrics.pm10 ? 'block' : 'none';
     document.getElementById('card-temp').style.display = state.enabledMetrics.temp ? 'block' : 'none';
-    document.getElementById('card-gas').style.display = state.enabledMetrics.gas ? 'block' : 'none';
+    document.getElementById('card-gas').style.display = state.enabledMetrics.nox ? 'block' : 'none';
   }
 
   function updateUI() {
@@ -193,8 +193,8 @@
     var pct10 = Math.min(100, (state.sensorData.pm10 / 50) * 100);
     document.getElementById('bar-pm10').style.width = pct10 + '%';
 
-    document.getElementById('gas-display').textContent = state.sensorData.gas.toFixed(0);
-    var pctGas = Math.min(100, (state.sensorData.gas / 1000) * 100);
+    document.getElementById('gas-display').textContent = state.sensorData.nox.toFixed(0);
+    var pctGas = Math.min(100, (state.sensorData.nox / 65535) * 100);
     document.getElementById('bar-gas').style.width = pctGas + '%';
 
     updateThresholdDisplay();
@@ -209,7 +209,7 @@
     var t = GOLD_THRESHOLDS[state.goldPhase] || GOLD_THRESHOLDS['GOLD 3'];
     document.getElementById('norm-pm25').textContent = 'geel ' + t.yellow + ' | oranje ' + t.orange + ' | rood ' + t.red + ' µg/m³';
     document.getElementById('norm-pm10').textContent = 'WHO 24u grens 45 µg/m³';
-    document.getElementById('norm-gas').textContent = 'grens 1000 ppm';
+    document.getElementById('norm-gas').textContent = 'bereik 0 – 65535 ticks';
   }
 
   function getTempHint(temp) {
@@ -279,7 +279,7 @@
           pm25: d.pm25 || 0,
           pm10: d.pm10 || 0,
           temp: d.temp || 0,
-          gas: d.gas || 0
+          nox: d.nox || 0
         };
         state.prevStatusLvl = state.statusLvl;
         state.statusLvl = d.statusLevel || 1;
@@ -293,7 +293,7 @@
       })
       .catch(function(err) {
         console.error('fetchStatus error:', err);
-        state.sensorData = { pm25: 0, pm10: 0, temp: 0, gas: 0 };
+        state.sensorData = { pm25: 0, pm10: 0, temp: 0, nox: 0 };
         updateUI();
       });
   }
@@ -360,7 +360,7 @@
   });
 
   document.getElementById('show-gas').addEventListener('change', function(e) {
-    state.enabledMetrics.gas = e.target.checked;
+    state.enabledMetrics.nox = e.target.checked;
     updateVisibility();
   });
 

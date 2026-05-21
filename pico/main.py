@@ -1,6 +1,6 @@
 print("▶️  Starting main.py")
 
-from machine import Pin, UART, ADC
+from machine import Pin, UART, ADC, I2C
 import network
 import socket
 import gc
@@ -11,6 +11,9 @@ import ujson
 uart = UART(0, baudrate=9600, tx=Pin(0), rx=Pin(1))
 buf = bytearray()
 sensor = ADC(Pin(26))
+i2c = I2C(1, scl=Pin(3), sda=Pin(2), freq=100000)
+
+SGP41_ADDR = 0x59
 
 pico_led = Pin("LED", Pin.OUT)
 rode_led = Pin(15, Pin.OUT)
@@ -20,10 +23,22 @@ PM25_COPD_DREMPEL = 25.0
 pm25 = 0.0
 pm10 = 0.0
 temp = 0.0
+gas_nox = 0
+gas_connected = False
+gas_raw = ""
 
 DEFAULT_SETTINGS = {"naam":"","leeftijd":"50 jaar","copd":"GOLD 3","promode":False,"themekey":"sky","showpm25":True,"showpm10":True,"showtemp":True,"showgas":True,"symptoms":[]}
 
 GOLD_THRESHOLDS = {"GOLD 1":{"green":5,"yellow":10,"orange":20,"red":25},"GOLD 2":{"green":4,"yellow":8,"orange":16,"red":20},"GOLD 3":{"green":3,"yellow":6,"orange":12,"red":16},"GOLD 4":{"green":2,"yellow":5,"orange":10,"red":14}}
+
+NOX_THRESHOLDS = {"green": 18000, "yellow": 25000, "orange": 35000, "red": 45000}
+
+def calc_nox_level(nox):
+    if nox >= NOX_THRESHOLDS["red"]: return 5
+    if nox >= NOX_THRESHOLDS["orange"]: return 4
+    if nox >= NOX_THRESHOLDS["yellow"]: return 3
+    if nox >= NOX_THRESHOLDS["green"]: return 2
+    return 1
 
 def calc_status_level(v, g):
     t = GOLD_THRESHOLDS.get(g, GOLD_THRESHOLDS["GOLD 3"])
@@ -32,6 +47,11 @@ def calc_status_level(v, g):
     if v >= t["yellow"]: return 3
     if v >= t["green"]: return 2
     return 1
+
+def calc_combined_status(pm25, gold, nox):
+    pm_level = calc_status_level(pm25, gold)
+    nox_level = calc_nox_level(nox)
+    return max(pm_level, nox_level)
 
 def load_settings():
     try:
@@ -57,6 +77,50 @@ def lees_temperatuur_c():
     spanning = waarde * (3.3 / 65535)
     return (spanning - 0.5) * 100
 
+def test_gas_sensor():
+    global gas_connected, gas_raw
+    try:
+        devices = i2c.scan()
+        gas_raw = "I2C devices: " + str([hex(d) for d in devices])
+        if SGP41_ADDR in devices:
+            gas_connected = True
+            gas_raw += " | SGP41 found at 0x59"
+            print("[GAS] Connected -", gas_raw)
+        else:
+            gas_connected = False
+            print("[GAS] NOT connected -", gas_raw)
+    except Exception as e:
+        gas_connected = False
+        gas_raw = "I2C error: " + str(e)
+        print("[GAS] I2C error -", gas_raw)
+
+def init_gas_sensor():
+    global gas_connected
+    if not gas_connected:
+        return
+    try:
+        # sgp41_execute_conditioning (0x2612) + default RH/Temp params per datasheet
+        i2c.writeto(SGP41_ADDR, bytes([0x26, 0x12, 0x80, 0x00, 0xA2, 0x66, 0x66, 0x93]))
+        utime.sleep_ms(50)
+        _ = i2c.readfrom(SGP41_ADDR, 3)
+        print("[GAS] Conditioning done")
+    except Exception as e:
+        print("[GAS] Conditioning error:", e)
+
+def read_gas_sensor():
+    global gas_nox
+    if not gas_connected:
+        return
+    try:
+        # sgp41_measure_raw_signals (0x2619) + default RH/Temp params per datasheet
+        i2c.writeto(SGP41_ADDR, bytes([0x26, 0x19, 0x80, 0x00, 0xA2, 0x66, 0x66, 0x93]))
+        utime.sleep_ms(50)
+        data = i2c.readfrom(SGP41_ADDR, 6)
+        # NOx raw signal is in bytes 3 and 4
+        gas_nox = (data[3] << 8) | data[4]
+    except Exception as e:
+        print("[GAS] Read error:", e)
+
 def process_uart():
     global buf, pm25, pm10, temp
     data = uart.read()
@@ -73,10 +137,15 @@ def process_uart():
         pm25 = (frame[2] + (frame[3] << 8)) / 10
         pm10 = (frame[4] + (frame[5] << 8)) / 10
         temp = lees_temperatuur_c()
+        read_gas_sensor()
         rode_led.value(1 if pm25 >= PM25_COPD_DREMPEL else 0)
-        print("PM2.5:", pm25, "| PM10:", pm10, "| Temp:", round(temp, 1))
+        print("PM2.5:", pm25, "| PM10:", pm10, "| Temp:", round(temp, 1), "| NOx:", gas_nox)
         return True
     return False
+
+print("[GAS] Testing connection...")
+test_gas_sensor()
+init_gas_sensor()
 
 ap = network.WLAN(network.AP_IF)
 AP_IP = ap.ifconfig()[0]
@@ -97,8 +166,8 @@ async def dns_task():
         await asyncio.sleep_ms(10)
 
 def status_json():
-    level = calc_status_level(pm25, settings.get("copd", "GOLD 3"))
-    return '{"pm25":%s,"pm10":%s,"temp":%s,"statusLevel":%d}' % (pm25, pm10, round(temp, 1), level)
+    level = calc_combined_status(pm25, settings.get("copd", "GOLD 3"), gas_nox)
+    return '{"pm25":%s,"pm10":%s,"temp":%s,"nox":%d,"statusLevel":%d}' % (pm25, pm10, round(temp, 1), gas_nox, level)
 
 def read_file(path):
     with open(path, "r") as f:
