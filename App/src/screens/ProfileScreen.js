@@ -169,7 +169,7 @@ export default function ProfileScreen({
           </View>
         </GlassCard>
 
-        <GlassCard theme={theme} radius={22} style={{ padding: '10px 14px', marginBottom: 12 }}>
+        <GlassCard theme={theme} radius={22} style={{ paddingHorizontal: 14, paddingVertical: 10, marginBottom: 12 }}>
           <Text style={{
             fontSize: 11, fontWeight: '700', color: theme.inkSoft,
             letterSpacing: 0.4, marginTop: 10, marginBottom: 2, textTransform: 'uppercase',

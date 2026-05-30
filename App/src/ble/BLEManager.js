@@ -2,7 +2,18 @@ import { Platform, PermissionsAndroid, Alert } from 'react-native';
 import { BleManager } from 'react-native-ble-plx';
 import { BLE_CONFIG } from '../theme';
 
-const manager = new BleManager();
+let manager = null;
+
+function getManager() {
+  if (!manager) {
+    try {
+      manager = new BleManager();
+    } catch (e) {
+      console.warn('BleManager init failed:', e);
+    }
+  }
+  return manager;
+}
 
 let connectedDevice = null;
 let monitorSubscription = null;
@@ -32,7 +43,9 @@ export async function requestPermissions() {
 }
 
 export function startScan(onDeviceFound, onError) {
-  manager.startDeviceScan(
+  const m = getManager();
+  if (!m) return;
+  m.startDeviceScan(
     [BLE_CONFIG.SERVICE_UUID],
     null,
     (error, device) => {
@@ -48,7 +61,8 @@ export function startScan(onDeviceFound, onError) {
 }
 
 export function stopScan() {
-  manager.stopDeviceScan();
+  const m = getManager();
+  if (m) m.stopDeviceScan();
 }
 
 export async function connectToDevice(device) {
@@ -142,5 +156,7 @@ export function clear() {
   connectedDevice = null;
   onDataCallback = null;
   onDisconnectCallback = null;
-  manager.destroy();
+  const m = getManager();
+  if (m) m.destroy();
+  manager = null;
 }
