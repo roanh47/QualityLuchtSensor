@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, StatusBar, SafeAreaView } from 'react-native';
+import { View, AppRegistry, StatusBar, SafeAreaView } from 'react-native';
 import { THEMES, pm25ToStatusLvl } from './src/theme';
 import TabBar from './src/components/TabBar';
 import ConnectScreen from './src/screens/ConnectScreen';
@@ -8,7 +8,7 @@ import TrendsScreen from './src/screens/TrendsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import * as BLE from './src/ble/BLEManager';
 
-export default function App() {
+const App = () => {
   const [connected, setConnected] = useState(false);
   const [tab, setTab] = useState('home');
   const [themeKey, setThemeKey] = useState('sky');
@@ -114,4 +114,6 @@ export default function App() {
       </View>
     </SafeAreaView>
   );
-}
+};
+
+AppRegistry.registerComponent('main', () => App);
