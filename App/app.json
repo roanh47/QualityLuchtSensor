@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "QualityLuchtSensor",
+    "slug": "qualityluchtsensor",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "backgroundColor": "#c9e0f5",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.nseleerteam4.qualityluchtsensor"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#c9e0f5"
+      },
+      "package": "com.nseleerteam4.qualityluchtsensor",
+      "permissions": [
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN"
+      ]
+    },
+    "plugins": [
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": true,
+          "modes": [
+            "peripheral",
+            "central"
+          ],
+          "bluetoothAlwaysPermission": "Allow QualityLuchtSensor to connect to your sensor via Bluetooth"
+        }
+      ],
+      "expo-asset",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "796b87bf-f32c-4199-9797-26f0b75b3709"
+      }
+    }
+  }
+}
