@@ -123,17 +123,13 @@ export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, en
           <SymptomRow theme={theme} statusLvl={statusLvl} onAdd={() => setSymptomOpen(true)} />
         </View>
 
-        <TouchableOpacity
-          onPress={onDisconnect}
-          style={{
-            marginTop: 16, marginBottom: 20, padding: 12, borderRadius: 14,
-            backgroundColor: 'rgba(201,74,58,0.12)', alignItems: 'center',
-          }}
-        >
-          <Text style={{ fontSize: 13, fontWeight: '600', color: theme.s4 }}>
-            Ontkoppel apparaat
-          </Text>
-        </TouchableOpacity>
+        <GlassCard theme={theme} radius={14} style={{ marginTop: 16, marginBottom: 20, padding: 12, backgroundColor: 'rgba(201,74,58,0.15)' }}>
+          <TouchableOpacity onPress={onDisconnect} style={{ alignItems: 'center' }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: theme.s4 }}>
+              Ontkoppel apparaat
+            </Text>
+          </TouchableOpacity>
+        </GlassCard>
       </ScrollView>
 
       <Modal visible={symptomOpen} transparent animationType="slide">

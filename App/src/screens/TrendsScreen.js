@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import GlassCard from '../components/GlassCard';
 import AmbientBg from '../components/AmbientBg';
@@ -6,24 +6,50 @@ import Icon from '../components/Icon';
 import LineChart from '../components/LineChart';
 import { STATUS_LEVELS, generateTrendData } from '../theme';
 
+const RANGE_POINTS = { day: 24, week: 7, month: 30 };
+
 export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode, demoMode, sensorData }) {
   const status = STATUS_LEVELS[statusLvl - 1] || STATUS_LEVELS[0];
   const statusColor = theme[status.colorKey];
   const [range, setRange] = useState('week');
+  const [tick, setTick] = useState(0);
+  const historyRef = useRef([]);
   const sd = sensorData || {};
 
-  const currentValues = {
-    pm25: sd.pm25 ?? '--',
-    no2: sd.pm10 != null ? sd.pm10 * 0.5 : '--',
-    temp: sd.temp ?? '--',
-    gas: sd.nox ?? '--',
-  };
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      historyRef.current.push({
+        pm25: sd.pm25 ?? 0,
+        pm10: sd.pm10 ?? 0,
+        temp: sd.temp ?? 0,
+        nox: sd.nox ?? 0,
+        label: h + ':' + m,
+      });
+      const max = RANGE_POINTS[range] || 7;
+      if (historyRef.current.length > max) {
+        historyRef.current = historyRef.current.slice(-max);
+      }
+      setTick(t => t + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [range, sd.pm25, sd.pm10, sd.temp, sd.nox]);
 
-  const chartData = useMemo(() => {
-    if (range === 'day') return generateTrendData(50, 24);
-    if (range === 'month') return generateTrendData(50, 30);
-    return generateTrendData(50, 7);
-  }, [range]);
+  const hist = historyRef.current;
+  const mainData = hist.map((p, i) => ({
+    x: i,
+    v: +((p.pm25 + p.pm10 * 0.5 + p.temp * 0.5 + p.nox / 500) / 4).toFixed(1),
+    label: p.label,
+  }));
+
+  const currentValues = {
+    pm25: sd.pm25 ?? 0,
+    no2: sd.pm10 != null ? sd.pm10 * 0.5 : 0,
+    temp: sd.temp ?? 0,
+    gas: sd.nox ?? 0,
+  };
 
   const cards = [
     enabledMetrics.pm25 && { k: 'pm25', label: 'PM2.5', sub: 'Fijnstof', unit: 'µg/m³', color: theme.s3, v: currentValues.pm25 },
@@ -101,7 +127,7 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
               Gemiddelde van alle sensoren — lager = beter
             </Text>
           </View>
-          <LineChart data={chartData} color={statusColor} width={300} height={140} theme={theme} />
+          <LineChart data={mainData} color={statusColor} width={300} height={140} theme={theme} />
         </GlassCard>
 
         {proMode && (
@@ -122,13 +148,20 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
                     </Text>
                     <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: 2 }}>
                       <Text style={{ fontSize: 24, fontWeight: '700', color: theme.ink, letterSpacing: -0.5 }}>
-                        {c.v}
+                        {typeof c.v === 'number' ? c.v.toFixed(1) : c.v}
                       </Text>
                       <Text style={{ fontSize: 11, color: theme.inkSoft, fontWeight: '500' }}>{c.unit}</Text>
                     </View>
                   </View>
                 </View>
-                <LineChart data={generateTrendData(c.v, 7)} color={c.color} width={300} height={110} theme={theme} />
+                <LineChart data={hist.map((p, i) => {
+                  let val = 0;
+                  if (c.k === 'pm25') val = p.pm25 || 0;
+                  else if (c.k === 'no2') val = (p.pm10 || 0) * 0.5;
+                  else if (c.k === 'temp') val = p.temp || 0;
+                  else if (c.k === 'gas') val = p.nox || 0;
+                  return { x: i, v: val, label: p.label };
+                })} color={c.color} width={300} height={110} theme={theme} />
               </GlassCard>
             ))}
           </>

@@ -8,25 +8,25 @@ export default function AmbientBg({ theme, statusColor }) {
       backgroundColor: theme.bgA,
     }}>
       <View style={{
-        flex: 1,
-        backgroundImage: undefined,
-      }}>
-        <View style={{
-          position: 'absolute', top: -60, right: -80, width: 280, height: 280, borderRadius: 140,
-          backgroundColor: statusColor || theme.s2,
-          opacity: 0.3,
-        }} />
-        <View style={{
-          position: 'absolute', bottom: 100, left: -60, width: 240, height: 240, borderRadius: 120,
-          backgroundColor: theme.accent,
-          opacity: 0.2,
-        }} />
-        <View style={{
-          position: 'absolute', top: '40%', left: '30%', width: 180, height: 180, borderRadius: 90,
-          backgroundColor: theme.bgC || theme.bgB,
-          opacity: 0.5,
-        }} />
-      </View>
+        position: 'absolute', top: -160, right: -160, width: 500, height: 500, borderRadius: 250,
+        backgroundColor: statusColor || theme.s2,
+        opacity: 0.18,
+      }} />
+      <View style={{
+        position: 'absolute', bottom: 60, left: -140, width: 440, height: 440, borderRadius: 220,
+        backgroundColor: theme.accent,
+        opacity: 0.12,
+      }} />
+      <View style={{
+        position: 'absolute', top: '30%', left: '20%', width: 360, height: 360, borderRadius: 180,
+        backgroundColor: theme.bgC || theme.bgB,
+        opacity: 0.15,
+      }} />
+      <View style={{
+        position: 'absolute', bottom: '15%', right: -80, width: 300, height: 300, borderRadius: 150,
+        backgroundColor: theme.bgB,
+        opacity: 0.1,
+      }} />
     </View>
   );
 }

@@ -13,18 +13,12 @@ export default function GlassCard({ children, style, theme, radius = 24, intensi
         borderWidth: 0.5,
         borderColor: theme.glassBorder,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.08,
-        shadowRadius: 40,
-        elevation: 8,
-        overflow: 'hidden',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+        elevation: 3,
       }, style]}
     >
-      <View style={{
-        position: 'absolute', top: 0, left: 8, right: 8, height: 1,
-        backgroundColor: 'rgba(255,255,255,0.9)',
-        borderRadius: 1,
-      }} />
       {children}
     </Component>
   );
