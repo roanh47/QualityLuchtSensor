@@ -6,16 +6,17 @@ import Icon from '../components/Icon';
 import LineChart from '../components/LineChart';
 import { STATUS_LEVELS, generateTrendData } from '../theme';
 
-export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode, sensorData }) {
+export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode, demoMode, sensorData }) {
   const status = STATUS_LEVELS[statusLvl - 1] || STATUS_LEVELS[0];
   const statusColor = theme[status.colorKey];
   const [range, setRange] = useState('week');
+  const sd = sensorData || {};
 
   const currentValues = {
-    pm25: sensorData.pm25,
-    no2: sensorData.pm10 * 0.5,
-    temp: sensorData.temp,
-    gas: sensorData.nox,
+    pm25: sd.pm25 ?? '--',
+    no2: sd.pm10 != null ? sd.pm10 * 0.5 : '--',
+    temp: sd.temp ?? '--',
+    gas: sd.nox ?? '--',
   };
 
   const chartData = useMemo(() => {

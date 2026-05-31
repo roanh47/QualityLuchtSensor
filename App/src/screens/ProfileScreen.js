@@ -7,7 +7,7 @@ import Icon from '../components/Icon';
 import { STATUS_LEVELS, SYMPTOMS, THEMES } from '../theme';
 
 export default function ProfileScreen({
-  theme, statusLvl, proMode, setProMode,
+  theme, statusLvl, proMode, demoMode, setProMode,
   enabledMetrics, setEnabledMetrics,
   currentTheme, setThemeKey,
   onDisconnect,

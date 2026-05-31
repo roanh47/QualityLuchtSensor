@@ -4,7 +4,8 @@ import GlassCard from './GlassCard';
 import Icon from './Icon';
 
 export default function MetricCard({ label, sub, value, unit, norm, color, theme, enabled = true }) {
-  const pct = norm ? Math.min(100, (value / norm) * 100) : 0;
+  const num = typeof value === 'number' ? value : 0;
+  const pct = norm ? Math.min(100, (num / norm) * 100) : 0;
   return (
     <GlassCard theme={theme} radius={22} style={{ padding: 14, opacity: enabled ? 1 : 0.5, flex: 1 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>

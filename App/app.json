@@ -17,6 +17,7 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#c9e0f5"
       },
       "package": "com.nseleerteam4.qualityluchtsensor",

@@ -8,22 +8,23 @@ import AmbientBg from '../components/AmbientBg';
 import Icon from '../components/Icon';
 import { STATUS_LEVELS, SYMPTOMS, getTempHint } from '../theme';
 
-export default function OverviewScreen({ theme, statusLvl, proMode, enabledMetrics, sensorData, onDisconnect, timeStr }) {
+export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, enabledMetrics, sensorData, onDisconnect, timeStr }) {
   const status = STATUS_LEVELS[statusLvl - 1] || STATUS_LEVELS[0];
   const statusColor = theme[status.colorKey];
   const [symptomOpen, setSymptomOpen] = useState(false);
   const [selectedSymptoms, setSelectedSymptoms] = useState([]);
   const [intensity, setIntensity] = useState(2);
+  const sd = sensorData || {};
 
   const metrics = {
-    pm25: { v: sensorData.pm25, unit: 'µg/m³', norm: 25, label: 'PM2.5', sub: 'Fijnstof' },
-    no2: { v: sensorData.pm10 * 0.5, unit: 'µg/m³', norm: 25, label: 'NO₂', sub: 'Stikstofdioxide' },
-    temp: { v: sensorData.temp, unit: '°C', norm: 30, label: 'Temperatuur', sub: 'Buitenlucht' },
-    gas: { v: sensorData.nox, unit: 'ticks', norm: 45000, label: 'NOx', sub: 'Stikstofoxiden' },
+    pm25: { v: sd.pm25 ?? '--', unit: 'µg/m³', norm: 25, label: 'PM2.5', sub: 'Fijnstof' },
+    no2: { v: sd.pm10 != null ? sd.pm10 * 0.5 : '--', unit: 'µg/m³', norm: 25, label: 'NO₂', sub: 'Stikstofdioxide' },
+    temp: { v: sd.temp ?? '--', unit: '°C', norm: 30, label: 'Temperatuur', sub: 'Buitenlucht' },
+    gas: { v: sd.nox ?? '--', unit: 'ticks', norm: 45000, label: 'NOx', sub: 'Stikstofoxiden' },
   };
   const metricColors = { pm25: theme.s3, no2: theme.s4, temp: theme.accent, gas: theme.s1 };
 
-  const tempHint = getTempHint(sensorData.temp);
+  const tempHint = sd.temp != null ? getTempHint(sd.temp) : '--';
 
   const now = new Date();
   const days = ['Zondag', 'Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag'];
@@ -66,7 +67,7 @@ export default function OverviewScreen({ theme, statusLvl, proMode, enabledMetri
                 <Text style={{ fontSize: 13, color: theme.inkSoft, fontWeight: '500' }}>Buitentemperatuur</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: 2 }}>
                   <Text style={{ fontSize: 28, fontWeight: '700', color: theme.ink, letterSpacing: -0.5 }}>
-                    {sensorData.temp.toFixed(1)}
+                    {sd.temp != null ? sd.temp.toFixed(1) : '--'}
                   </Text>
                   <Text style={{ fontSize: 14, color: theme.inkSoft, fontWeight: '500' }}>°C</Text>
                 </View>

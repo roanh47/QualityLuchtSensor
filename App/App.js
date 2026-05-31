@@ -10,6 +10,7 @@ import * as BLE from './src/ble/BLEManager';
 
 const App = () => {
   const [connected, setConnected] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
   const [tab, setTab] = useState('home');
   const [themeKey, setThemeKey] = useState('sky');
   const [proMode, setProMode] = useState(false);
@@ -17,9 +18,7 @@ const App = () => {
   const [enabledMetrics, setEnabledMetrics] = useState({
     pm25: true, no2: true, temp: true, gas: true,
   });
-  const [sensorData, setSensorData] = useState({
-    pm25: 21.3, pm10: 38.7, temp: 14.2, nox: 120,
-  });
+  const [sensorData, setSensorData] = useState(null);
   const [timeStr, setTimeStr] = useState('--:--');
   const statusInterval = useRef(null);
 
@@ -53,14 +52,22 @@ const App = () => {
     }
   }, []);
 
-  const handleConnected = useCallback(() => {
+  const handleConnected = useCallback((demo) => {
+    if (demo) {
+      setDemoMode(true);
+      setConnected(true);
+      setSensorData(null);
+      return;
+    }
     setConnected(true);
     BLE.setOnDataCallback(handleSensorData);
     BLE.setOnDisconnectCallback(() => setConnected(false));
   }, [handleSensorData]);
 
   const handleDisconnect = useCallback(async () => {
-    await BLE.disconnectDevice();
+    setDemoMode(false);
+    setSensorData(null);
+    if (BLE.isConnected()) await BLE.disconnectDevice();
     setConnected(false);
   }, []);
 
@@ -82,6 +89,7 @@ const App = () => {
             theme={theme}
             statusLvl={statusLvl}
             proMode={proMode}
+            demoMode={demoMode}
             enabledMetrics={enabledMetrics}
             sensorData={sensorData}
             onDisconnect={handleDisconnect}
@@ -94,6 +102,7 @@ const App = () => {
             statusLvl={statusLvl}
             enabledMetrics={enabledMetrics}
             proMode={proMode}
+            demoMode={demoMode}
             sensorData={sensorData}
           />
         )}
@@ -102,6 +111,7 @@ const App = () => {
             theme={theme}
             statusLvl={statusLvl}
             proMode={proMode}
+            demoMode={demoMode}
             setProMode={setProMode}
             enabledMetrics={enabledMetrics}
             setEnabledMetrics={setEnabledMetrics}

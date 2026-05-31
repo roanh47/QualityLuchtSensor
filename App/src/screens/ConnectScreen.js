@@ -10,6 +10,7 @@ export default function ConnectScreen({ onConnected }) {
   const [scanning, setScanning] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [permissions, setPermissions] = useState(false);
+  const [tapCount, setTapCount] = useState(0);
 
   useEffect(() => {
     return () => {
@@ -113,7 +114,14 @@ export default function ConnectScreen({ onConnected }) {
         paddingTop: 80,
       }}>
         <View style={{ alignItems: 'center', marginBottom: 32 }}>
-          <View style={{
+          <TouchableOpacity onPress={() => {
+            const next = tapCount + 1;
+            setTapCount(next);
+            if (next >= 5) {
+              setTapCount(0);
+              onConnected(true);
+            }
+          }} style={{
             width: 80, height: 80, borderRadius: 40,
             backgroundColor: 'rgba(255,255,255,0.5)',
             alignItems: 'center', justifyContent: 'center',
@@ -121,7 +129,7 @@ export default function ConnectScreen({ onConnected }) {
             borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.9)',
           }}>
             <Icon name="bluetooth" size={36} color="#2b6fd6" />
-          </View>
+          </TouchableOpacity>
           <Text style={{ fontSize: 26, fontWeight: '700', color: '#1a2332', letterSpacing: -0.5 }}>
             QualityLuchtSensor™
           </Text>
