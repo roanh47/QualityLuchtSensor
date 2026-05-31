@@ -15,7 +15,9 @@ export default function LineChart({ data, color, width = 300, height = 140, them
     return { x, y, ...d };
   });
 
-  const last = pts[pts.length - 1];
+  const labelWidth = 34;
+  const maxLabels = Math.floor((width - padL - padR) / labelWidth);
+  const labelStep = data.length > maxLabels ? Math.ceil(data.length / maxLabels) : 1;
 
   return (
     <View style={{ width: '100%', height }}>
@@ -41,10 +43,10 @@ export default function LineChart({ data, color, width = 300, height = 140, them
             }} />
           </React.Fragment>
         ))}
-        {pts.map((p, i) => (
+        {pts.filter((_, i) => i % labelStep === 0 || i === pts.length - 1).map((p, i) => (
           <Text key={i} style={{
-            position: 'absolute', left: p.x - 10, top: height - 18, width: 20,
-            fontSize: 9, color: theme.inkMuted, textAlign: 'center',
+            position: 'absolute', left: p.x - 17, top: height - 18, width: 34,
+            fontSize: 8, color: theme.inkMuted, textAlign: 'center',
           }}>
             {p.label}
           </Text>

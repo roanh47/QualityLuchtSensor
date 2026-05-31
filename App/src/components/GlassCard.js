@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity } from 'react-native';
 
-export default function GlassCard({ children, style, theme, radius = 24, intensity = 1, onPress }) {
+export default function GlassCard({ children, style, theme, radius = 24, onPress }) {
   const Component = onPress ? TouchableOpacity : View;
   return (
     <Component
@@ -10,13 +10,12 @@ export default function GlassCard({ children, style, theme, radius = 24, intensi
       style={[{
         borderRadius: radius,
         backgroundColor: theme.glassBg,
-        borderWidth: 0.5,
-        borderColor: theme.glassBorder,
+        borderWidth: 0,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
       }, style]}
     >
       {children}
