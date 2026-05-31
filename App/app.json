@@ -2,7 +2,7 @@
   "expo": {
     "name": "QualityLuchtSensor",
     "slug": "qualityluchtsensor",
-    "version": "1.0.0",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -20,6 +20,7 @@
         "backgroundColor": "#c9e0f5"
       },
       "package": "com.nseleerteam4.qualityluchtsensor",
+      "versionCode": 3,
       "permissions": [
         "android.permission.BLUETOOTH_SCAN",
         "android.permission.BLUETOOTH_CONNECT",
@@ -47,7 +48,6 @@
       "eas": {
         "projectId": "796b87bf-f32c-4199-9797-26f0b75b3709"
       }
-    },
-    "jsEngine": "jsc"
+    }
   }
 }
