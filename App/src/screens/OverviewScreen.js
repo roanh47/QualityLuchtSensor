@@ -120,10 +120,10 @@ export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, en
         )}
 
         <View style={{ marginTop: 12 }}>
-          <SymptomRow theme={theme} statusLvl={statusLvl} onAdd={() => setSymptomOpen(true)} />
+          <SymptomRow theme={theme} onAdd={() => setSymptomOpen(true)} selectedSymptoms={selectedSymptoms} intensity={intensity} />
         </View>
 
-        <GlassCard theme={theme} radius={14} style={{ marginTop: 16, marginBottom: 20, padding: 12, backgroundColor: 'rgba(201,74,58,0.15)' }}>
+        <GlassCard theme={theme} radius={14} style={{ marginTop: 16, marginBottom: 20, padding: 12 }}>
           <TouchableOpacity onPress={onDisconnect} style={{ alignItems: 'center' }}>
             <Text style={{ fontSize: 13, fontWeight: '600', color: theme.s4 }}>
               Ontkoppel apparaat

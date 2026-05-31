@@ -10,6 +10,7 @@ export default function ProfileScreen({
   theme, statusLvl, proMode, demoMode, setProMode,
   enabledMetrics, setEnabledMetrics,
   currentTheme, setThemeKey,
+  goldStage, setGoldStage,
   onDisconnect,
 }) {
   const status = STATUS_LEVELS[statusLvl - 1] || STATUS_LEVELS[0];
@@ -18,7 +19,6 @@ export default function ProfileScreen({
   const [name, setName] = useState('Patient');
   const [editingName, setEditingName] = useState(false);
   const [age, setAge] = useState('68');
-  const [goldStage, setGoldStage] = useState('GOLD 3');
   const [showGoldPicker, setShowGoldPicker] = useState(false);
   const inputRef = useRef(null);
 
@@ -33,10 +33,10 @@ export default function ProfileScreen({
   const goldOptions = ['GOLD 1', 'GOLD 2', 'GOLD 3', 'GOLD 4'];
 
   const metricConfig = [
-    { key: 'pm25', label: 'PM2.5', sub: 'Fijnstof', color: theme.s3 },
-    { key: 'no2', label: 'NO₂', sub: 'Stikstofdioxide', color: theme.s4 },
-    { key: 'temp', label: 'Temperatuur', sub: 'Buitenlucht', color: theme.accent },
-    { key: 'gas', label: 'NOx', sub: 'Stikstofoxiden', color: theme.s1 },
+    { key: 'pm25', label: 'PM2.5', sub: 'Fijnstof', color: theme.s3, icon: 'dust' },
+    { key: 'no2', label: 'NO₂', sub: 'Stikstofdioxide', color: theme.s4, icon: 'wind' },
+    { key: 'temp', label: 'Temperatuur', sub: 'Buitenlucht', color: theme.accent, icon: 'thermo' },
+    { key: 'gas', label: 'NOx', sub: 'Stikstofoxiden', color: theme.s1, icon: 'chemical' },
   ];
 
   return (
@@ -193,7 +193,7 @@ export default function ProfileScreen({
                   backgroundColor: `${m.color}18`,
                   alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <Icon name="dust" size={18} color={m.color} />
+                  <Icon name={m.icon} size={18} color={m.color} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 14, fontWeight: '600', color: theme.ink }}>{m.label}</Text>
@@ -226,19 +226,13 @@ export default function ProfileScreen({
                   borderColor: currentTheme === key ? theme.accent : 'transparent',
                 }}>
                 <View style={{
-                  height: 44, borderRadius: 11, overflow: 'hidden',
+                  height: 44, borderRadius: 11,
                   backgroundColor: t.bgA,
                   alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <View style={{
-                    marginHorizontal: 4, borderRadius: 7,
-                    backgroundColor: 'rgba(255,255,255,0.45)',
-                    paddingVertical: 6, paddingHorizontal: 8,
-                  }}>
-                    <Text style={{ fontSize: 9.5, fontWeight: '600', color: t.ink, textAlign: 'center' }}>
-                      {t.name}
-                    </Text>
-                  </View>
+                  <Text style={{ fontSize: 10, fontWeight: '600', color: t.ink, textAlign: 'center' }}>
+                    {t.name}
+                  </Text>
                 </View>
               </TouchableOpacity>
             ))}

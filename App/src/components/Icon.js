@@ -21,6 +21,7 @@ const paths = {
   refresh: <G><Path d="M21 12a9 9 0 0 1-15.5 6.3L3 16M3 12a9 9 0 0 1 15.5-6.3L21 8"/><Path d="M21 3v5h-5M3 21v-5h5"/></G>,
   bluetooth: <G><Path d="M6 7l12 10-6 5V2l6 5-12 10"/></G>,
   'chevron-right': <G><Path d="M9 6l6 6-6 6"/></G>,
+  chemical: <G><Path d="M8 3v6l-3 5v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5l-3-5V3"/><Path d="M8 3h8"/><Path d="M10 3v5a2 2 0 0 1-.6 1.4L7 12M14 3v5a2 2 0 0 0 .6 1.4L17 12"/></G>,
 };
 
 export default function Icon({ name, size = 20, color = '#000', strokeWidth = 1.8 }) {

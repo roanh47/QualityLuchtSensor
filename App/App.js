@@ -8,13 +8,32 @@ import TrendsScreen from './src/screens/TrendsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import * as BLE from './src/ble/BLEManager';
 
+const GOLD_THRESHOLDS = {
+  'GOLD 1': { pm25: [20, 35, 60], baseline: 0 },
+  'GOLD 2': { pm25: [15, 25, 45], baseline: 1 },
+  'GOLD 3': { pm25: [10, 18, 30], baseline: 1 },
+  'GOLD 4': { pm25: [5, 10, 20], baseline: 2 },
+};
+
+function calcStatusLvl(sd, goldStage) {
+  const cfg = GOLD_THRESHOLDS[goldStage] || GOLD_THRESHOLDS['GOLD 3'];
+  if (!sd) return Math.min(4, cfg.baseline + 2);
+  const pm25 = sd.pm25;
+  if (pm25 == null) return Math.min(4, cfg.baseline + 2);
+  if (pm25 < cfg.pm25[0]) return Math.max(1, cfg.baseline);
+  if (pm25 < cfg.pm25[1]) return Math.max(1, cfg.baseline + 1);
+  if (pm25 < cfg.pm25[2]) return Math.min(4, cfg.baseline + 2);
+  return 4;
+}
+
 const App = () => {
   const [connected, setConnected] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
   const [tab, setTab] = useState('home');
   const [themeKey, setThemeKey] = useState('sky');
   const [proMode, setProMode] = useState(false);
-  const [statusLvl, setStatusLvl] = useState(2);
+  const [goldStage, setGoldStage] = useState('GOLD 3');
+  const [statusLvl, setStatusLvl] = useState(3);
   const [enabledMetrics, setEnabledMetrics] = useState({
     pm25: true, no2: true, temp: true, gas: true,
   });
@@ -39,17 +58,17 @@ const App = () => {
     };
   }, []);
 
+  useEffect(() => {
+    setStatusLvl(calcStatusLvl(sensorData, goldStage));
+  }, [sensorData, goldStage]);
+
   const handleSensorData = useCallback((data) => {
     setSensorData({
-      pm25: data.pm25 || sensorData.pm25,
-      pm10: data.pm10 || sensorData.pm10,
-      temp: data.temp || sensorData.temp,
-      nox: data.nox || sensorData.nox,
+      pm25: data.pm25 ?? sensorData?.pm25,
+      pm10: data.pm10 ?? sensorData?.pm10,
+      temp: data.temp ?? sensorData?.temp,
+      nox: data.nox ?? sensorData?.nox,
     });
-    if (data.pm25) {
-      const level = data.statusLevel || pm25ToStatusLvl(data.pm25);
-      setStatusLvl(Math.min(level, 4));
-    }
   }, []);
 
   const handleConnected = useCallback((demo) => {
@@ -117,6 +136,8 @@ const App = () => {
             setEnabledMetrics={setEnabledMetrics}
             currentTheme={themeKey}
             setThemeKey={setThemeKey}
+            goldStage={goldStage}
+            setGoldStage={setGoldStage}
             onDisconnect={handleDisconnect}
           />
         )}
