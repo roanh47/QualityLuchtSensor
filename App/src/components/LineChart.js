@@ -7,13 +7,20 @@ export default function LineChart({ data, color, height = 140, theme }) {
   
   if (!data || data.length === 0) return null;
 
-  const vs = data.map(d => d.v);
+  // Downsample if too many points — cap at 12 so dots stay spaced
+  let pts = data;
+  if (pts.length > 12) {
+    const step = Math.ceil(pts.length / 12);
+    pts = pts.filter((_, i) => i % step === 0 || i === pts.length - 1);
+  }
+
+  const vs = pts.map(d => d.v);
   const mn = Math.min(...vs) * 0.9;
   const mx = Math.max(...vs) * 1.05;
   const padL = 2, padR = 2, padT = 14, padB = 24;
 
-  const pts = data.map((d, i) => {
-    const x = padL + (i / Math.max(1, data.length - 1)) * (width - padL - padR);
+  pts = pts.map((d, i) => {
+    const x = padL + (i / Math.max(1, pts.length - 1)) * (width - padL - padR);
     const y = padT + (1 - (d.v - mn) / Math.max(0.01, mx - mn)) * (height - padT - padB);
     return { x, y, ...d };
   });

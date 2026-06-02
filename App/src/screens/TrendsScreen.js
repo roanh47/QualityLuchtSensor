@@ -8,14 +8,16 @@ import { STATUS_LEVELS, generateTrendData } from '../theme';
 
 const RANGE_POINTS = { day: 24, week: 7, month: 30 };
 
-export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode, demoMode, sensorData }) {
+export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode, demoMode, sensorData, goldStage }) {
   const status = STATUS_LEVELS[statusLvl - 1] || STATUS_LEVELS[0];
   const statusColor = theme[status.colorKey];
   const [range, setRange] = useState('week');
   const [tick, setTick] = useState(0);
   const historyRef = useRef([]);
+  const lastPushRef = useRef(0);
   const sd = sensorData || {};
 
+  // Collect a data point every 30 seconds (not every second!)
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date();
@@ -33,16 +35,53 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
         historyRef.current = historyRef.current.slice(-max);
       }
       setTick(t => t + 1);
-    }, 1000);
+    }, 30000);
     return () => clearInterval(interval);
-  }, [range, sd.pm25, sd.pm10, sd.temp, sd.nox]);
+  }, [range]);
+
+  // Calculate combined status matching the Pico's logic (GOLD + NOx max)
+  const GOLD_THRESHOLDS = {
+    'GOLD 1': { green: 5, yellow: 10, orange: 20, red: 25 },
+    'GOLD 2': { green: 4, yellow: 8, orange: 16, red: 20 },
+    'GOLD 3': { green: 3, yellow: 6, orange: 12, red: 16 },
+    'GOLD 4': { green: 2, yellow: 5, orange: 10, red: 14 },
+  };
+  const NOX_THRESHOLDS = { green: 18000, yellow: 25000, orange: 35000, red: 45000 };
+
+  function calcPmLevel(v, g) {
+    const t = GOLD_THRESHOLDS[g] || GOLD_THRESHOLDS['GOLD 3'];
+    if (v >= t.red) return 5;
+    if (v >= t.orange) return 4;
+    if (v >= t.yellow) return 3;
+    if (v >= t.green) return 2;
+    return 1;
+  }
+
+  function calcNoxLevel(nox) {
+    if (nox >= NOX_THRESHOLDS.red) return 5;
+    if (nox >= NOX_THRESHOLDS.orange) return 4;
+    if (nox >= NOX_THRESHOLDS.yellow) return 3;
+    if (nox >= NOX_THRESHOLDS.green) return 2;
+    return 1;
+  }
+
+  function calcCombined(v_pm25, v_nox) {
+    const pm = calcPmLevel(v_pm25, goldStage);
+    const nx = calcNoxLevel(v_nox);
+    return { level: Math.max(pm, nx), pm, nx };
+  }
 
   const hist = historyRef.current;
-  const mainData = hist.map((p, i) => ({
-    x: i,
-    v: +((p.pm25 + p.pm10 * 0.5 + p.temp * 0.5 + p.nox / 500) / 4).toFixed(1),
-    label: p.label,
-  }));
+  // Combined status: map to 1-5 level matching Pico's calc_combined_status
+  const mainData = hist.map((p, i) => {
+    const combined = calcCombined(p.pm25, p.nox);
+    return {
+      x: i,
+      v: combined.level,
+      level: combined.level,
+      label: p.label,
+    };
+  });
 
   const currentValues = {
     pm25: sd.pm25 ?? 0,

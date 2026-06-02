@@ -145,6 +145,7 @@ const App = () => {
             proMode={proMode}
             demoMode={demoMode}
             sensorData={sensorData}
+            goldStage={goldStage}
           />
         )}
         {tab === 'profile' && (
