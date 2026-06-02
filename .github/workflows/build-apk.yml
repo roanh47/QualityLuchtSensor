@@ -20,14 +20,25 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+      - name: Enable Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
       - name: Install dependencies
         run: npm ci
       - name: Prebuild
         run: npx expo prebuild --platform android --no-install
       - name: Build APK
-        run: cd android && ./gradlew assembleDebug
+        run: cd android && ./gradlew assembleRelease
+        env:
+          ANDROID_NDK_HOME: ""
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: QualityLuchtSensor-v1.0.7
-          path: App/android/app/build/outputs/apk/debug/app-debug.apk
+          path: App/android/app/build/outputs/apk/release/app-release.apk
