@@ -16,9 +16,12 @@ function getManager() {
 }
 
 let connectedDevice = null;
-let monitorSubscription = null;
+let monitorSubscriptions = [];
 let onDataCallback = null;
 let onDisconnectCallback = null;
+let disconnectSubscription = null;
+// Laatst ontvangen waarden per karakteristiek
+const latestValues = {};
 
 export async function requestPermissions() {
   if (Platform.OS === 'android') {
@@ -69,7 +72,18 @@ export async function connectToDevice(device) {
   try {
     connectedDevice = await device.connect();
     await connectedDevice.discoverAllServicesAndCharacteristics();
-    startMonitoring();
+    // Luister naar onverwachtse disconnect van de Pico
+    disconnectSubscription = connectedDevice.onDisconnected((err) => {
+      console.log('Device disconnected:', err ? err.message : 'unknown');
+      removeSubscriptions();
+      if (disconnectSubscription) {
+        disconnectSubscription.remove();
+        disconnectSubscription = null;
+      }
+      connectedDevice = null;
+      if (onDisconnectCallback) onDisconnectCallback();
+    });
+    await subscribeToNotifications();
     return connectedDevice;
   } catch (error) {
     throw error;
@@ -77,9 +91,10 @@ export async function connectToDevice(device) {
 }
 
 export async function disconnectDevice() {
-  if (monitorSubscription) {
-    monitorSubscription.remove();
-    monitorSubscription = null;
+  removeSubscriptions();
+  if (disconnectSubscription) {
+    disconnectSubscription.remove();
+    disconnectSubscription = null;
   }
   if (connectedDevice) {
     await connectedDevice.cancelConnection();
@@ -100,64 +115,102 @@ export function setOnDisconnectCallback(callback) {
   onDisconnectCallback = callback;
 }
 
-function parseSensorData(base64Value) {
-  try {
-    const raw = atob(base64Value);
-    const values = raw.split(',').map(Number);
-    if (values.length >= 5) {
-      return {
-        pm25: values[0],
-        pm10: values[1],
-        temp: values[2],
-        nox: values[3],
-        statusLevel: values[4],
-      };
-    }
-  } catch (e) {
+function removeSubscriptions() {
+  for (const sub of monitorSubscriptions) {
+    if (sub) sub.remove();
   }
-  return null;
+  monitorSubscriptions = [];
 }
 
-async function readAllCharacteristics() {
+function notifyDataIfReady() {
+  if (!onDataCallback) return;
+  const pm25 = latestValues[BLE_CONFIG.PM25_CHAR_UUID];
+  const pm10 = latestValues[BLE_CONFIG.PM10_CHAR_UUID];
+  const temp = latestValues[BLE_CONFIG.TEMP_CHAR_UUID];
+  const nox = latestValues[BLE_CONFIG.NOX_CHAR_UUID];
+  const statusLevel = latestValues[BLE_CONFIG.STATUS_CHAR_UUID];
+  // Fire zodra we minimaal PM2.5 hebben (eerste meetronde binnen)
+  if (pm25 !== undefined) {
+    onDataCallback({ pm25, pm10, temp, nox, statusLevel });
+  }
+}
+
+function parseSingleChar(uuid, base64Value) {
+  try {
+    const decoded = atob(base64Value);
+    if (!decoded) return undefined;
+    if (uuid === BLE_CONFIG.PM25_CHAR_UUID) return parseFloat(decoded);
+    if (uuid === BLE_CONFIG.PM10_CHAR_UUID) return parseFloat(decoded);
+    if (uuid === BLE_CONFIG.TEMP_CHAR_UUID) return parseFloat(decoded);
+    if (uuid === BLE_CONFIG.NOX_CHAR_UUID) return parseFloat(decoded);
+    if (uuid === BLE_CONFIG.STATUS_CHAR_UUID) return parseInt(decoded, 10);
+  } catch (e) {}
+  return undefined;
+}
+
+async function subscribeToNotifications() {
   if (!connectedDevice) return;
+  removeSubscriptions();
+  Object.keys(latestValues).forEach(k => delete latestValues[k]);
+
   try {
     const services = await connectedDevice.services();
     for (const service of services) {
       if (service.uuid.toUpperCase() === BLE_CONFIG.SERVICE_UUID) {
         const characteristics = await service.characteristics();
-        const data = {};
+
         for (const char of characteristics) {
-          const charData = await char.read();
           const uuid = char.uuid.toUpperCase();
-          const decodedValue = atob(charData.value);
-          
-          if (uuid === BLE_CONFIG.PM25_CHAR_UUID) data.pm25 = parseFloat(decodedValue);
-          else if (uuid === BLE_CONFIG.PM10_CHAR_UUID) data.pm10 = parseFloat(decodedValue);
-          else if (uuid === BLE_CONFIG.TEMP_CHAR_UUID) data.temp = parseFloat(decodedValue);
-          else if (uuid === BLE_CONFIG.NOX_CHAR_UUID) data.nox = parseFloat(decodedValue);
-          else if (uuid === BLE_CONFIG.STATUS_CHAR_UUID) data.statusLevel = parseInt(decodedValue, 10);
+          if (
+            uuid !== BLE_CONFIG.PM25_CHAR_UUID &&
+            uuid !== BLE_CONFIG.PM10_CHAR_UUID &&
+            uuid !== BLE_CONFIG.TEMP_CHAR_UUID &&
+            uuid !== BLE_CONFIG.NOX_CHAR_UUID &&
+            uuid !== BLE_CONFIG.STATUS_CHAR_UUID
+          ) continue;
+
+          // Eerste waarde direct uitlezen (Pico heeft beginwaarden klaarstaan)
+          try {
+            const initRead = await char.read();
+            if (initRead && initRead.value) {
+              const val = parseSingleChar(uuid, initRead.value);
+              if (val !== undefined) latestValues[uuid] = val;
+            }
+          } catch (_) {}
+
+          // Subscribe op notifications — Pico pusht elke 1s
+          const sub = char.monitor((error, updatedChar) => {
+            if (error) {
+              console.log('Monitor error:', error);
+              return;
+            }
+            if (!updatedChar || !updatedChar.value) return;
+            const val = parseSingleChar(uuid, updatedChar.value);
+            if (val !== undefined) {
+              latestValues[uuid] = val;
+              notifyDataIfReady();
+            }
+          });
+          monitorSubscriptions.push(sub);
         }
-        if (onDataCallback && data.pm25 !== undefined) onDataCallback(data);
+        break;
       }
     }
   } catch (e) {
-    console.log('Read characteristics error:', e);
+    console.log('Subscribe error:', e);
   }
 }
 
-function startMonitoring() {
-  if (!connectedDevice) return;
-  readAllCharacteristics();
-  const interval = setInterval(readAllCharacteristics, 5000);
-  monitorSubscription = { remove: () => clearInterval(interval) };
-}
-
 export function clear() {
-  if (monitorSubscription) monitorSubscription.remove();
-  monitorSubscription = null;
+  removeSubscriptions();
+  if (disconnectSubscription) {
+    disconnectSubscription.remove();
+    disconnectSubscription = null;
+  }
   connectedDevice = null;
   onDataCallback = null;
   onDisconnectCallback = null;
+  Object.keys(latestValues).forEach(k => delete latestValues[k]);
   const m = getManager();
   if (m) m.destroy();
   manager = null;

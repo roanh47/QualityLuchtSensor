@@ -32,6 +32,17 @@ if _BLE_SUPPORT:
     _status_char = aioble.Characteristic(_ble_service, _STATUS_UUID, read=True, notify=True)
     aioble.register_services(_ble_service)
 
+def _set_initial_ble_values():
+    """Zet beginwaarden op BLE chars — voorkomt NaN bij eerste read door app.
+    Aparte functie omdat write() pas werkt als de event loop draait."""
+    if not _BLE_SUPPORT:
+        return
+    _pm25_char.write(b"0.0")
+    _pm10_char.write(b"0.0")
+    _temp_char.write(b"0.0")
+    _nox_char.write(b"0")
+    _status_char.write(b"1")
+
 uart = UART(0, baudrate=9600, tx=Pin(0), rx=Pin(1))
 buf = bytearray()
 sensor = ADC(Pin(26))
@@ -289,14 +300,17 @@ async def ble_task():
                     _temp_char.write(str(round(temp, 1)).encode())
                     _nox_char.write(str(gas_nox).encode())
                     _status_char.write(str(stat).encode())
+                    # notify = True bij characteristic aanmaak, write() stuurt automatisch update
                     
-                    await asyncio.sleep_ms(2000)
+                    await asyncio.sleep_ms(1000)
                 print("BLE Client Disconnected")
         except Exception as e:
             print("BLE Error:", e)
             await asyncio.sleep_ms(5000)
 
 async def main():
+    # Beginwaarden voor BLE zetten — nu event loop draait
+    _set_initial_ble_values()
     if _BLE_SUPPORT:
         asyncio.create_task(ble_task())
     asyncio.create_task(dns_task())

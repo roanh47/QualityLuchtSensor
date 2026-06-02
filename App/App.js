@@ -80,12 +80,15 @@ const App = () => {
   }, [sensorData, goldStage]);
 
   const handleSensorData = useCallback((data) => {
-    setSensorData(prev => ({
-      pm25: data.pm25 ?? prev?.pm25 ?? 0,
-      pm10: data.pm10 ?? prev?.pm10 ?? 0,
-      temp: data.temp ?? prev?.temp ?? 0,
-      nox: data.nox ?? prev?.nox ?? 0,
-    }));
+    setSensorData(prev => {
+      const valid = (v) => v != null && !isNaN(v);
+      return {
+        pm25: valid(data.pm25) ? data.pm25 : (valid(prev?.pm25) ? prev.pm25 : null),
+        pm10: valid(data.pm10) ? data.pm10 : (valid(prev?.pm10) ? prev.pm10 : null),
+        temp: valid(data.temp) ? data.temp : (valid(prev?.temp) ? prev.temp : null),
+        nox: valid(data.nox)  ? data.nox  : (valid(prev?.nox)  ? prev.nox  : null),
+      };
+    });
   }, []);
 
   const handleConnected = useCallback((demo) => {

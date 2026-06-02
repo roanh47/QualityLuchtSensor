@@ -15,7 +15,10 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
   const [tick, setTick] = useState(0);
   const historyRef = useRef([]);
   const lastPushRef = useRef(0);
-  const sd = sensorData || {};
+  const sdRef = useRef(sensorData || {});
+
+  // Keep sdRef in sync with latest sensorData
+  sdRef.current = sensorData || {};
 
   // Collect a data point every 30 seconds (not every second!)
   useEffect(() => {
@@ -23,11 +26,12 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
       const now = new Date();
       const h = String(now.getHours()).padStart(2, '0');
       const m = String(now.getMinutes()).padStart(2, '0');
+      const s = sdRef.current;
       historyRef.current.push({
-        pm25: sd.pm25 ?? 0,
-        pm10: sd.pm10 ?? 0,
-        temp: sd.temp ?? 0,
-        nox: sd.nox ?? 0,
+        pm25: s.pm25 ?? 0,
+        pm10: s.pm10 ?? 0,
+        temp: s.temp ?? 0,
+        nox: s.nox ?? 0,
         label: h + ':' + m,
       });
       const max = RANGE_POINTS[range] || 7;
@@ -84,10 +88,10 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
   });
 
   const currentValues = {
-    pm25: sd.pm25 ?? 0,
-    no2: sd.pm10 != null ? sd.pm10 * 0.5 : 0,
-    temp: sd.temp ?? 0,
-    gas: sd.nox ?? 0,
+    pm25: sdRef.current.pm25 ?? 0,
+    no2: sdRef.current.pm10 != null ? sdRef.current.pm10 * 0.5 : 0,
+    temp: sdRef.current.temp ?? 0,
+    gas: sdRef.current.nox ?? 0,
   };
 
   const cards = [
