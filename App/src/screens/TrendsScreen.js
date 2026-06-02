@@ -127,7 +127,7 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
               Gemiddelde van alle sensoren — lager = beter
             </Text>
           </View>
-          <LineChart data={mainData} color={statusColor} width={300} height={140} theme={theme} />
+          <LineChart data={mainData} color={statusColor} height={140} theme={theme} />
         </GlassCard>
 
         {proMode && (
@@ -161,7 +161,7 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
                   else if (c.k === 'temp') val = p.temp || 0;
                   else if (c.k === 'gas') val = p.nox || 0;
                   return { x: i, v: val, label: p.label };
-                })} color={c.color} width={300} height={110} theme={theme} />
+                })} color={c.color} height={110} theme={theme} />
               </GlassCard>
             ))}
           </>

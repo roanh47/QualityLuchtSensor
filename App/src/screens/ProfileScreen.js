@@ -221,12 +221,12 @@ export default function ProfileScreen({
             {Object.entries(THEMES).map(([key, t]) => (
               <TouchableOpacity key={key} onPress={() => setThemeKey(key)}
                 style={{
-                  flex: 1, borderRadius: 14,
-                  borderWidth: currentTheme === key ? 1.5 : 1.5,
+                  flex: 1, borderRadius: 14, overflow: 'hidden',
+                  borderWidth: currentTheme === key ? 2 : 0,
                   borderColor: currentTheme === key ? theme.accent : 'transparent',
                 }}>
                 <View style={{
-                  height: 44, borderRadius: 11,
+                  height: 44,
                   backgroundColor: t.bgA,
                   alignItems: 'center', justifyContent: 'center',
                 }}>

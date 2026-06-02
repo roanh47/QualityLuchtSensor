@@ -1,7 +1,10 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, useWindowDimensions } from 'react-native';
 
-export default function LineChart({ data, color, width = 300, height = 140, theme }) {
+export default function LineChart({ data, color, height = 140, theme }) {
+  const { width: screenWidth } = useWindowDimensions();
+  const width = screenWidth - 64; // account for card padding + screen padding
+  
   if (!data || data.length === 0) return null;
 
   const vs = data.map(d => d.v);
@@ -10,7 +13,7 @@ export default function LineChart({ data, color, width = 300, height = 140, them
   const padL = 2, padR = 2, padT = 14, padB = 24;
 
   const pts = data.map((d, i) => {
-    const x = padL + (i / (data.length - 1)) * (width - padL - padR);
+    const x = padL + (i / Math.max(1, data.length - 1)) * (width - padL - padR);
     const y = padT + (1 - (d.v - mn) / Math.max(0.01, mx - mn)) * (height - padT - padB);
     return { x, y, ...d };
   });

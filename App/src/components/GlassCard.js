@@ -10,12 +10,11 @@ export default function GlassCard({ children, style, theme, radius = 24, onPress
       style={[{
         borderRadius: radius,
         backgroundColor: theme.glassBg,
-        borderWidth: 0.5,
-        borderColor: theme.glassBorder,
-        shadowColor: 'rgba(0,0,0,0.12)',
-        shadowOffset: { width: 0, height: 10 },
+        borderWidth: 0,
+        shadowColor: 'rgba(0,0,0,0.08)',
+        shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 1,
-        shadowRadius: 40,
+        shadowRadius: 30,
       }, style]}
     >
       {children}

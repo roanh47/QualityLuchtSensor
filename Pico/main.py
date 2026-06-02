@@ -8,6 +8,30 @@ import utime
 import uasyncio as asyncio
 import ujson
 
+try:
+    import aioble
+    import bluetooth
+    _BLE_SUPPORT = True
+except ImportError:
+    print("aioble module not found. BLE won't work.")
+    _BLE_SUPPORT = False
+
+if _BLE_SUPPORT:
+    _SERVICE_UUID = bluetooth.UUID('0000FFE0-0000-1000-8000-00805F9B34FB')
+    _PM25_UUID = bluetooth.UUID('0000FFE1-0000-1000-8000-00805F9B34FB')
+    _PM10_UUID = bluetooth.UUID('0000FFE2-0000-1000-8000-00805F9B34FB')
+    _TEMP_UUID = bluetooth.UUID('0000FFE3-0000-1000-8000-00805F9B34FB')
+    _NOX_UUID = bluetooth.UUID('0000FFE4-0000-1000-8000-00805F9B34FB')
+    _STATUS_UUID = bluetooth.UUID('0000FFE5-0000-1000-8000-00805F9B34FB')
+
+    _ble_service = aioble.Service(_SERVICE_UUID)
+    _pm25_char = aioble.Characteristic(_ble_service, _PM25_UUID, read=True, notify=True)
+    _pm10_char = aioble.Characteristic(_ble_service, _PM10_UUID, read=True, notify=True)
+    _temp_char = aioble.Characteristic(_ble_service, _TEMP_UUID, read=True, notify=True)
+    _nox_char = aioble.Characteristic(_ble_service, _NOX_UUID, read=True, notify=True)
+    _status_char = aioble.Characteristic(_ble_service, _STATUS_UUID, read=True, notify=True)
+    aioble.register_services(_ble_service)
+
 uart = UART(0, baudrate=9600, tx=Pin(0), rx=Pin(1))
 buf = bytearray()
 sensor = ADC(Pin(26))
@@ -245,7 +269,36 @@ async def uart_task():
             pico_led.off()
         await asyncio.sleep_ms(50)
 
+async def ble_task():
+    if not _BLE_SUPPORT:
+        return
+    print("BLE Started. Broadcasting as 'QualityLuchtSensor'")
+    while True:
+        try:
+            async with await aioble.advertise(
+                250_000,
+                name="QualityLuchtSensor",
+                services=[_SERVICE_UUID],
+                appearance=0x0000,
+            ) as connection:
+                print("BLE Client Connected:", connection.device)
+                while connection.is_connected():
+                    stat = calc_combined_status(pm25, settings.get("copd", "GOLD 3"), gas_nox)
+                    _pm25_char.write(str(round(pm25, 1)).encode())
+                    _pm10_char.write(str(round(pm10, 1)).encode())
+                    _temp_char.write(str(round(temp, 1)).encode())
+                    _nox_char.write(str(gas_nox).encode())
+                    _status_char.write(str(stat).encode())
+                    
+                    await asyncio.sleep_ms(2000)
+                print("BLE Client Disconnected")
+        except Exception as e:
+            print("BLE Error:", e)
+            await asyncio.sleep_ms(5000)
+
 async def main():
+    if _BLE_SUPPORT:
+        asyncio.create_task(ble_task())
     asyncio.create_task(dns_task())
     asyncio.create_task(uart_task())
     await asyncio.start_server(handle_client, "0.0.0.0", 80, backlog=5)

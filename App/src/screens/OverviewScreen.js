@@ -8,16 +8,22 @@ import AmbientBg from '../components/AmbientBg';
 import Icon from '../components/Icon';
 import { STATUS_LEVELS, SYMPTOMS, getTempHint } from '../theme';
 
-export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, enabledMetrics, sensorData, onDisconnect, timeStr }) {
+export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, enabledMetrics, sensorData, onDisconnect, timeStr, goldStage, selectedSymptoms, setSelectedSymptoms, symptomIntensity, setSymptomIntensity }) {
   const status = STATUS_LEVELS[statusLvl - 1] || STATUS_LEVELS[0];
   const statusColor = theme[status.colorKey];
   const [symptomOpen, setSymptomOpen] = useState(false);
-  const [selectedSymptoms, setSelectedSymptoms] = useState([]);
-  const [intensity, setIntensity] = useState(2);
   const sd = sensorData || {};
 
+  const GOLD_THRESHOLDS = {
+    'GOLD 1': { green: 5, yellow: 10, orange: 20, red: 25 },
+    'GOLD 2': { green: 4, yellow: 8, orange: 16, red: 20 },
+    'GOLD 3': { green: 3, yellow: 6, orange: 12, red: 16 },
+    'GOLD 4': { green: 2, yellow: 5, orange: 10, red: 14 },
+  };
+  const goldCfg = GOLD_THRESHOLDS[goldStage] || GOLD_THRESHOLDS['GOLD 3'];
+
   const metrics = {
-    pm25: { v: sd.pm25 ?? '--', unit: 'µg/m³', norm: 25, label: 'PM2.5', sub: 'Fijnstof' },
+    pm25: { v: sd.pm25 ?? '--', unit: 'µg/m³', norm: goldCfg.red, label: 'PM2.5', sub: 'Fijnstof — grenswaarde ' + goldCfg.red + ' ' + goldStage },
     no2: { v: sd.pm10 != null ? sd.pm10 * 0.5 : '--', unit: 'µg/m³', norm: 25, label: 'NO₂', sub: 'Stikstofdioxide' },
     temp: { v: sd.temp ?? '--', unit: '°C', norm: 30, label: 'Temperatuur', sub: 'Buitenlucht' },
     gas: { v: sd.nox ?? '--', unit: 'ticks', norm: 45000, label: 'NOx', sub: 'Stikstofoxiden' },
@@ -96,22 +102,22 @@ export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, en
             </View>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
               {enabledMetrics.pm25 && (
-                <View style={{ width: '47%' }}>
+                <View style={{ width: '48%', flexGrow: 1 }}>
                   <MetricCard {...metrics.pm25} color={metricColors.pm25} theme={theme} />
                 </View>
               )}
               {enabledMetrics.no2 && (
-                <View style={{ width: '47%' }}>
+                <View style={{ width: '48%', flexGrow: 1 }}>
                   <MetricCard {...metrics.no2} color={metricColors.no2} theme={theme} />
                 </View>
               )}
               {enabledMetrics.temp && (
-                <View style={{ width: '47%' }}>
+                <View style={{ width: '48%', flexGrow: 1 }}>
                   <MetricCard {...metrics.temp} color={metricColors.temp} theme={theme} />
                 </View>
               )}
               {enabledMetrics.gas && (
-                <View style={{ width: '47%' }}>
+                <View style={{ width: '48%', flexGrow: 1 }}>
                   <MetricCard {...metrics.gas} color={metricColors.gas} theme={theme} />
                 </View>
               )}
@@ -120,7 +126,7 @@ export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, en
         )}
 
         <View style={{ marginTop: 12 }}>
-          <SymptomRow theme={theme} onAdd={() => setSymptomOpen(true)} selectedSymptoms={selectedSymptoms} intensity={intensity} />
+          <SymptomRow theme={theme} onAdd={() => setSymptomOpen(true)} selectedSymptoms={selectedSymptoms} intensity={symptomIntensity} />
         </View>
 
         <GlassCard theme={theme} radius={14} style={{ marginTop: 16, marginBottom: 20, padding: 12 }}>
@@ -171,12 +177,12 @@ export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, en
               <Text style={{ fontSize: 13, fontWeight: '600', color: theme.ink, marginBottom: 8 }}>Intensiteit</Text>
               <View style={{ flexDirection: 'row', gap: 6 }}>
                 {[1, 2, 3, 4].map(i => (
-                  <TouchableOpacity key={i} onPress={() => setIntensity(i)}
+                  <TouchableOpacity key={i} onPress={() => setSymptomIntensity(i)}
                     style={{
                       flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center',
-                      backgroundColor: intensity >= i ? theme[STATUS_LEVELS[i - 1].colorKey] : 'rgba(0,0,0,0.04)',
+                      backgroundColor: symptomIntensity >= i ? theme[STATUS_LEVELS[i - 1].colorKey] : 'rgba(0,0,0,0.04)',
                     }}>
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: intensity >= i ? '#fff' : theme.inkSoft }}>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: symptomIntensity >= i ? '#fff' : theme.inkSoft }}>
                       {['Licht', 'Matig', 'Hoog', 'Zwaar'][i - 1]}
                     </Text>
                   </TouchableOpacity>

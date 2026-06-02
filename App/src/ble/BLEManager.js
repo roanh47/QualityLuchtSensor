@@ -129,11 +129,13 @@ async function readAllCharacteristics() {
         for (const char of characteristics) {
           const charData = await char.read();
           const uuid = char.uuid.toUpperCase();
-          if (uuid === BLE_CONFIG.PM25_CHAR_UUID) data.pm25 = parseFloat(charData.value);
-          else if (uuid === BLE_CONFIG.PM10_CHAR_UUID) data.pm10 = parseFloat(charData.value);
-          else if (uuid === BLE_CONFIG.TEMP_CHAR_UUID) data.temp = parseFloat(charData.value);
-          else if (uuid === BLE_CONFIG.NOX_CHAR_UUID) data.nox = parseFloat(charData.value);
-          else if (uuid === BLE_CONFIG.STATUS_CHAR_UUID) data.statusLevel = parseInt(charData.value);
+          const decodedValue = atob(charData.value);
+          
+          if (uuid === BLE_CONFIG.PM25_CHAR_UUID) data.pm25 = parseFloat(decodedValue);
+          else if (uuid === BLE_CONFIG.PM10_CHAR_UUID) data.pm10 = parseFloat(decodedValue);
+          else if (uuid === BLE_CONFIG.TEMP_CHAR_UUID) data.temp = parseFloat(decodedValue);
+          else if (uuid === BLE_CONFIG.NOX_CHAR_UUID) data.nox = parseFloat(decodedValue);
+          else if (uuid === BLE_CONFIG.STATUS_CHAR_UUID) data.statusLevel = parseInt(decodedValue, 10);
         }
         if (onDataCallback && data.pm25 !== undefined) onDataCallback(data);
       }

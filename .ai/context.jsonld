@@ -1,0 +1,59 @@
+{
+  "@context": {
+    "@vocab": "https://schema.org/",
+    "ai": "https://ai.example.com/vocab#",
+    "project": "ai:Project",
+    "components": "ai:hasComponent",
+    "techStack": "ai:usesTechnology",
+    "domainKnowledge": "ai:hasDomainKnowledge"
+  },
+  "@type": "project",
+  "name": "QualityLuchtSensor",
+  "description": "An air quality sensing ecosystem consisting of a React Native mobile app (Expo) and a Pico microcontroller broadcasting BLE.",
+  "techStack": ["React Native", "Expo", "MicroPython", "Vite", "React"],
+  "components": [
+    {
+      "@id": "#MobileApp",
+      "@type": "SoftwareApplication",
+      "name": "QualityLuchtSensor App",
+      "operatingSystem": "iOS, Android",
+      "directory": "/App",
+      "techStack": ["React Native", "Expo", "BLE", "react-native-ble-plx"],
+      "description": "Mobile app handling BLE connections to the Pico, displaying metrics. Must re-implement WiFi portal functionality (themeKey, symptoms, proMode, GOLD phase) matching the UI of Nieuw Dashboard."
+    },
+    {
+      "@id": "#Microcontroller",
+      "@type": "HardwareComponent",
+      "name": "LuchtSensor Pico",
+      "directory": "/pico",
+      "techStack": ["MicroPython", "uasyncio", "aioble"],
+      "description": "Hardware device reading air quality metrics (PM2.5, PM10, Temp, NOX) and broadcasting them via Bluetooth (GATT)."
+    },
+    {
+      "@id": "#FrontendReference",
+      "@type": "WebApplication",
+      "name": "Nieuw Dashboard",
+      "directory": "/Nieuw Dashboard",
+      "techStack": ["Vite", "React", "CSS"],
+      "description": "Web-based reference for the frontend team. Purely for UI/UX reference. Do not edit this directory."
+    }
+  ],
+  "domainKnowledge": {
+    "COPD_Logic": {
+      "description": "Patients have a GOLD phase which dictates severity thresholds for sensors.",
+      "GOLD_Thresholds": {
+        "GOLD 1": {"green": 5, "yellow": 10, "orange": 20, "red": 25},
+        "GOLD 2": {"green": 4, "yellow": 8, "orange": 16, "red": 20},
+        "GOLD 3": {"green": 3, "yellow": 6, "orange": 12, "red": 16},
+        "GOLD 4": {"green": 2, "yellow": 5, "orange": 10, "red": 14}
+      }
+    }
+  },
+  "ai:rules": [
+    "Never push or build the Expo app without explicit permission from the user.",
+    "Do not modify the '/Nieuw Dashboard' directory. It is managed by the frontend team.",
+    "The App must rely on the Pico's BLE broadcast, not WiFi.",
+    "Use MicroPython compatible async BLE (e.g., aioble) on the Pico.",
+    "Because the user develops in a cloud Codespace but flashes via Thonny, ALWAYS explicitly tell the user exactly which files (e.g., Pico/main.py) they need to manually download and upload to the Pico after they have been modified."
+  ]
+}
