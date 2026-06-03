@@ -8,7 +8,7 @@ import AmbientBg from '../components/AmbientBg';
 import Icon from '../components/Icon';
 import { STATUS_LEVELS, SYMPTOMS, getTempHint } from '../theme';
 
-export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, enabledMetrics, sensorData, onDisconnect, timeStr, goldStage, selectedSymptoms, setSelectedSymptoms, symptomIntensity, setSymptomIntensity }) {
+export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, enabledMetrics, sensorData, onDisconnect, timeStr, goldStage, selectedSymptoms, setSelectedSymptoms, symptomIntensity, setSymptomIntensity, patientName }) {
   const status = STATUS_LEVELS[statusLvl - 1] || STATUS_LEVELS[0];
   const statusColor = theme[status.colorKey];
   const [symptomOpen, setSymptomOpen] = useState(false);
@@ -55,7 +55,7 @@ export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, en
         <View style={{ paddingVertical: 4 }}>
           <Text style={{ fontSize: 12, color: theme.inkSoft, fontWeight: '500' }}>{dateStr}</Text>
           <Text style={{ fontSize: 22, fontWeight: '700', color: theme.ink, letterSpacing: -0.4, marginTop: 1 }}>
-            Hallo, Patient
+            Hallo, {patientName || 'Patient'}
           </Text>
         </View>
 
@@ -220,31 +220,47 @@ export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, en
               Grenswaarden
             </Text>
             <Text style={{ fontSize: 13, color: theme.inkSoft, marginBottom: 16, lineHeight: 18 }}>
-              Jouw persoonlijke drempelwaarden voor {goldStage}. De status wordt berekend op basis van de hoogste waarde van PM2.5 en NOx.
+              Drempelwaarden per COPD fase. Jouw huidige fase is {goldStage} (gemarkeerd).
             </Text>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: theme.ink, marginBottom: 8 }}>PM2.5 ({goldStage})</Text>
-              {[
-                { level: 'Uitstekend', max: goldCfg.green, color: theme.s1 },
-                { level: 'Goed', max: goldCfg.yellow, color: theme.s2 },
-                { level: 'Voorzichtig', max: goldCfg.orange, color: theme.s3 },
-                { level: 'Gevaarlijk', max: goldCfg.red, color: theme.s4 },
-              ].map((r, i) => (
-                <View key={r.level} style={{
-                  flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12,
-                  backgroundColor: i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent',
-                  borderRadius: 8,
+            {/* Alle GOLD niveaus tonen */}
+            {['GOLD 1', 'GOLD 2', 'GOLD 3', 'GOLD 4'].map((gStage) => {
+              const cfg = GOLD_THRESHOLDS[gStage];
+              const isCurrent = gStage === goldStage;
+              return (
+                <View key={gStage} style={{
+                  marginBottom: 14,
+                  borderWidth: isCurrent ? 1.5 : 0,
+                  borderColor: isCurrent ? theme.accent : 'transparent',
+                  borderRadius: 14,
+                  padding: isCurrent ? 10 : 0,
+                  backgroundColor: isCurrent ? `${theme.accent}08` : 'transparent',
                 }}>
-                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: r.color, marginRight: 10 }} />
-                  <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: theme.ink }}>{r.level}</Text>
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: theme.inkSoft }}>≤ {r.max} µg/m³</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: isCurrent ? theme.accent : theme.ink, marginBottom: 6 }}>
+                    PM2.5 ({gStage}){isCurrent ? '  ← Jouw fase' : ''}
+                  </Text>
+                  {[
+                    { level: 'Uitstekend', max: cfg.green, color: theme.s1 },
+                    { level: 'Goed', max: cfg.yellow, color: theme.s2 },
+                    { level: 'Voorzichtig', max: cfg.orange, color: theme.s3 },
+                    { level: 'Gevaarlijk', max: cfg.red, color: theme.s4 },
+                  ].map((r, i) => (
+                    <View key={r.level} style={{
+                      flexDirection: 'row', alignItems: 'center', paddingVertical: 5, paddingHorizontal: 8,
+                      backgroundColor: i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent',
+                      borderRadius: 6,
+                    }}>
+                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: r.color, marginRight: 8 }} />
+                      <Text style={{ flex: 1, fontSize: 12, fontWeight: '500', color: theme.ink }}>{r.level}</Text>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: theme.inkSoft }}>≤ {r.max} µg/m³</Text>
+                    </View>
+                  ))}
                 </View>
-              ))}
-            </View>
+              );
+            })}
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: theme.ink, marginBottom: 8 }}>NOx (Stikstofoxiden)</Text>
+            <View style={{ marginBottom: 14, marginTop: 6 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: theme.ink, marginBottom: 6 }}>NOx (Stikstofoxiden — zelfde voor alle fases)</Text>
               {[
                 { level: 'Uitstekend', max: NOX_THRESHOLDS.green, color: theme.s1 },
                 { level: 'Goed', max: NOX_THRESHOLDS.yellow, color: theme.s2 },
@@ -252,13 +268,13 @@ export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, en
                 { level: 'Gevaarlijk', max: NOX_THRESHOLDS.red, color: theme.s4 },
               ].map((r, i) => (
                 <View key={r.level} style={{
-                  flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12,
+                  flexDirection: 'row', alignItems: 'center', paddingVertical: 5, paddingHorizontal: 8,
                   backgroundColor: i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent',
-                  borderRadius: 8,
+                  borderRadius: 6,
                 }}>
-                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: r.color, marginRight: 10 }} />
-                  <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: theme.ink }}>{r.level}</Text>
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: theme.inkSoft }}>≤ {r.max} ticks</Text>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: r.color, marginRight: 8 }} />
+                  <Text style={{ flex: 1, fontSize: 12, fontWeight: '500', color: theme.ink }}>{r.level}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: theme.inkSoft }}>≤ {r.max} ticks</Text>
                 </View>
               ))}
             </View>

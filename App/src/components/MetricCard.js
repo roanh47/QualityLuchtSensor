@@ -3,8 +3,9 @@ import { View, Text } from 'react-native';
 import GlassCard from './GlassCard';
 import Icon from './Icon';
 
-export default function MetricCard({ label, sub, value, unit, norm, color, theme, enabled = true }) {
-  const num = typeof value === 'number' ? value : 0;
+export default function MetricCard({ label, sub, value, v, unit, norm, color, theme, enabled = true }) {
+  const raw = value ?? v;
+  const num = typeof raw === 'number' ? raw : 0;
   const pct = norm ? Math.min(100, (num / norm) * 100) : 0;
   return (
     <GlassCard theme={theme} radius={22} style={{ padding: 14, opacity: enabled ? 1 : 0.5, flex: 1 }}>
@@ -18,7 +19,7 @@ export default function MetricCard({ label, sub, value, unit, norm, color, theme
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3, marginTop: 2 }}>
         <Text style={{ fontSize: 26, fontWeight: '700', color: theme.ink, letterSpacing: -0.5 }}>
-          {value}
+          {raw != null ? raw : '--'}
         </Text>
         <Text style={{ fontSize: 11, color: theme.inkSoft, fontWeight: '500' }}>{unit}</Text>
       </View>

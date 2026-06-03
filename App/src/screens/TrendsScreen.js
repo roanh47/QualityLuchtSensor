@@ -13,16 +13,37 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
   const statusColor = theme[status.colorKey];
   const [range, setRange] = useState('week');
   const [tick, setTick] = useState(0);
-  const historyRef = useRef([]);
+  const historyRef = useRef(null);
   const lastPushRef = useRef(0);
   const sdRef = useRef(sensorData || {});
 
   // Keep sdRef in sync with latest sensorData
   sdRef.current = sensorData || {};
 
+  // Seed history with initial points so chart is not empty
+  useEffect(() => {
+    if (!sensorData) return;
+    // Initialize with first real data point
+    if (historyRef.current === null) {
+      historyRef.current = [];
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      historyRef.current.push({
+        pm25: sensorData.pm25 ?? 0,
+        pm10: sensorData.pm10 ?? 0,
+        temp: sensorData.temp ?? 0,
+        nox: sensorData.nox ?? 0,
+        label: h + ':' + m,
+      });
+      setTick(t => t + 1);
+    }
+  }, [sensorData]);
+
   // Collect a data point every 30 seconds (not every second!)
   useEffect(() => {
     const interval = setInterval(() => {
+      if (historyRef.current === null) return;
       const now = new Date();
       const h = String(now.getHours()).padStart(2, '0');
       const m = String(now.getMinutes()).padStart(2, '0');
@@ -75,7 +96,7 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
     return { level: Math.max(pm, nx), pm, nx };
   }
 
-  const hist = historyRef.current;
+  const hist = historyRef.current || [];
   // Combined status: map to 1-5 level matching Pico's calc_combined_status
   const mainData = hist.map((p, i) => {
     const combined = calcCombined(p.pm25, p.nox);

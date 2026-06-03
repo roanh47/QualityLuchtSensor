@@ -12,13 +12,12 @@ export default function ProfileScreen({
   currentTheme, setThemeKey,
   goldStage, setGoldStage,
   onDisconnect,
+  patientName, setPatientName, patientAge, setPatientAge,
 }) {
   const status = STATUS_LEVELS[statusLvl - 1] || STATUS_LEVELS[0];
   const statusColor = theme[status.colorKey];
   const [deviceOpen, setDeviceOpen] = useState(false);
-  const [name, setName] = useState('Patient');
   const [editingName, setEditingName] = useState(false);
-  const [age, setAge] = useState('68');
   const [showGoldPicker, setShowGoldPicker] = useState(false);
   const inputRef = useRef(null);
 
@@ -27,6 +26,11 @@ export default function ProfileScreen({
       inputRef.current.focus();
     }
   }, [editingName]);
+
+  const name = patientName;
+  const setName = setPatientName;
+  const age = patientAge;
+  const setAge = setPatientAge;
 
   const initials = (name.trim() || 'PA').split(/\s+/).map(p => p[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
 

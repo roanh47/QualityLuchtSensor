@@ -44,6 +44,7 @@ export const THEMES = {
 };
 
 export const STATUS_LEVELS = [
+  { key: 0, title: 'Wachten...', advice: 'Verbonden — wachten op sensordata.', longAdvice: 'De verbinding is gemaakt maar er zijn nog geen metingen binnengekomen.', colorKey: 'inkMuted', icon: 'refresh' },
   { key: 1, title: 'Uitstekend', advice: 'Perfect moment om naar buiten te gaan.', longAdvice: 'De luchtkwaliteit is goed en je symptomen zijn stabiel. Een wandeling wordt aanbevolen.', colorKey: 's1', icon: 'sun' },
   { key: 2, title: 'Goed', advice: 'Je kan veilig naar buiten.', longAdvice: 'De lucht is acceptabel. Houd rekening met korte activiteiten en neem je inhaler mee.', colorKey: 's2', icon: 'cloud-sun' },
   { key: 3, title: 'Voorzichtig', advice: 'Beperk je tijd buiten.', longAdvice: 'De fijnstofwaarden zijn verhoogd. Vermijd inspanning en drukke wegen. Korte boodschap kan wel.', colorKey: 's3', icon: 'cloud' },

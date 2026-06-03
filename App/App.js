@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, AppRegistry, StatusBar, SafeAreaView } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { THEMES, pm25ToStatusLvl } from './src/theme';
 import TabBar from './src/components/TabBar';
 import ConnectScreen from './src/screens/ConnectScreen';
@@ -35,11 +36,13 @@ function calcStatusLevel(pm25, goldStage) {
 }
 
 function calcCombinedStatus(sd, goldStage) {
-  if (!sd) return 2;
+  if (!sd || (sd.pm25 == null && sd.nox == null && sd.pm10 == null)) return 0; // geen data
   const pmLevel = calcStatusLevel(sd.pm25 ?? 0, goldStage);
   const noxLevel = calcNoxLevel(sd.nox ?? 0);
   return Math.max(pmLevel, noxLevel);
 }
+
+const STORAGE_KEY = '@profile';
 
 const App = () => {
   const [connected, setConnected] = useState(false);
@@ -48,15 +51,16 @@ const App = () => {
   const [themeKey, setThemeKey] = useState('sky');
   const [proMode, setProMode] = useState(false);
   const [goldStage, setGoldStage] = useState('GOLD 3');
-  const [statusLvl, setStatusLvl] = useState(3);
+  const [statusLvl, setStatusLvl] = useState(0);
   const [enabledMetrics, setEnabledMetrics] = useState({
     pm25: true, no2: true, temp: true, gas: true,
   });
-  const [selectedSymptoms, setSelectedSymptoms] = useState([]);
-  const [symptomIntensity, setSymptomIntensity] = useState(2);
+  const [patientName, setPatientName] = useState('Patient');
+  const [patientAge, setPatientAge] = useState('68');
   const [sensorData, setSensorData] = useState(null);
   const [timeStr, setTimeStr] = useState('--:--');
   const statusInterval = useRef(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
   const theme = THEMES[themeKey];
 
@@ -110,6 +114,33 @@ const App = () => {
     setConnected(false);
   }, []);
 
+  // Laad opgeslagen profiel bij startup
+  useEffect(() => {
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const p = JSON.parse(raw);
+          if (p.themeKey) setThemeKey(p.themeKey);
+          if (p.proMode != null) setProMode(p.proMode);
+          if (p.goldStage) setGoldStage(p.goldStage);
+          if (p.enabledMetrics) setEnabledMetrics(p.enabledMetrics);
+          if (p.patientName) setPatientName(p.patientName);
+          if (p.patientAge) setPatientAge(p.patientAge);
+        }
+      } catch (_) {}
+      setProfileLoaded(true);
+    })();
+  }, []);
+
+  // Sla profiel op bij wijzigingen
+  useEffect(() => {
+    if (!profileLoaded) return;
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({
+      themeKey, proMode, goldStage, enabledMetrics, patientName, patientAge,
+    })).catch(() => {});
+  }, [themeKey, proMode, goldStage, enabledMetrics, patientName, patientAge, profileLoaded]);
+
   if (!connected) {
     return (
       <SafeAreaView style={{ flex: 1 }}>
@@ -138,6 +169,7 @@ const App = () => {
             setSelectedSymptoms={setSelectedSymptoms}
             symptomIntensity={symptomIntensity}
             setSymptomIntensity={setSymptomIntensity}
+            patientName={patientName}
           />
         )}
         {tab === 'trends' && (
@@ -165,6 +197,10 @@ const App = () => {
             goldStage={goldStage}
             setGoldStage={setGoldStage}
             onDisconnect={handleDisconnect}
+            patientName={patientName}
+            setPatientName={setPatientName}
+            patientAge={patientAge}
+            setPatientAge={setPatientAge}
           />
         )}
         <TabBar tab={tab} setTab={setTab} theme={theme} />
