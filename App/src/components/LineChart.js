@@ -1,85 +1,86 @@
 import React from 'react';
-import { View, Text, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 
 export default function LineChart({ data, color, height = 140, theme, showValue = true }) {
-  const { width: screenWidth } = useWindowDimensions();
-  
   if (!data || data.length === 0) return null;
 
   const pts = data;
-  const chartWidth = screenWidth - 64;
   
-  // Calculate point positions
+  // Make chart wide so points have actual space between them (120px per point)
+  const chartWidth = Math.max(600, pts.length * 120);
+  
   const vs = pts.map(d => d.v);
   const mn = Math.min(...vs);
   const mx = Math.max(...vs);
   const range = mx - mn || 1;
   
-  const padL = 12, padR = 12, padT = 16, padB = 36;
+  const padL = 16, padR = 16, padT = 16, padB = 32;
   const chartH = height - padT - padB;
   const chartW = chartWidth - padL - padR;
   
-  // Only show start, middle, and end labels to avoid crowding
+  // Show start, middle, end time labels
   const labelIndices = pts.length <= 3 
     ? pts.map((_, i) => i)
     : [0, Math.floor(pts.length / 2), pts.length - 1];
   
   const mappedPts = pts.map((d, i) => {
+    // Evenly spaced by index, not by time - time labels show actual time
     const x = padL + (pts.length > 1 ? (i / (pts.length - 1)) * chartW : chartW / 2);
     const y = padT + (1 - (d.v - mn) / range) * chartH;
     return { x, y, ...d };
   });
 
-  // Find current (last) value for display
   const lastPt = mappedPts[mappedPts.length - 1];
   const currentVal = lastPt ? lastPt.v : null;
 
   return (
     <View style={{ width: '100%', height }}>
-      <View style={{ width: chartWidth, height: height - padB }}>
-        {/* Grid lines */}
-        {[0, 0.25, 0.5, 0.75, 1].map((frac, i) => (
-          <View key={i} style={{
-            position: 'absolute',
-            left: padL, right: padR,
-            top: padT + chartH * frac,
-            height: 1,
-            backgroundColor: theme.inkMuted + '22',
-          }} />
-        ))}
-        
-        {/* Line segments */}
-        {mappedPts.slice(1).map((p, i) => (
-          <View key={i} style={{
-            position: 'absolute',
-            left: mappedPts[i].x,
-            top: mappedPts[i].y,
-            width: Math.sqrt((p.x - mappedPts[i].x) ** 2 + (p.y - mappedPts[i].y) ** 2),
-            height: 2.5,
-            backgroundColor: color,
-            transform: [{ rotate: `${Math.atan2(p.y - mappedPts[i].y, p.x - mappedPts[i].x) * 180 / Math.PI}deg` }],
-            transformOrigin: 'left center',
-          }} />
-        ))}
-        
-        {/* Data points - larger, visible dots */}
-        {mappedPts.map((p, i) => (
-          <View key={i} style={{
-            position: 'absolute',
-            left: p.x - 5,
-            top: p.y - 5,
-            width: i === mappedPts.length - 1 ? 12 : 8,
-            height: i === mappedPts.length - 1 ? 12 : 8,
-            borderRadius: i === mappedPts.length - 1 ? 6 : 4,
-            backgroundColor: i === mappedPts.length - 1 ? '#fff' : color,
-            borderWidth: 2,
-            borderColor: color,
-          }} />
-        ))}
-      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ width: chartWidth }}>
+        <View style={{ width: chartWidth, height: height - padB }}>
+          {/* Grid lines */}
+          {[0, 0.25, 0.5, 0.75, 1].map((frac, i) => (
+            <View key={i} style={{
+              position: 'absolute',
+              left: padL, right: padR,
+              top: padT + chartH * frac,
+              height: 1,
+              backgroundColor: theme.inkMuted + '22',
+            }} />
+          ))}
+          
+          {/* Line segments */}
+          {mappedPts.slice(1).map((p, i) => (
+            <View key={i} style={{
+              position: 'absolute',
+              left: mappedPts[i].x,
+              top: mappedPts[i].y,
+              width: Math.sqrt((p.x - mappedPts[i].x) ** 2 + (p.y - mappedPts[i].y) ** 2),
+              height: 2.5,
+              backgroundColor: color,
+              transform: [{ rotate: `${Math.atan2(p.y - mappedPts[i].y, p.x - mappedPts[i].x) * 180 / Math.PI}deg` }],
+              transformOrigin: 'left center',
+            }} />
+          ))}
+          
+          {/* Data points with scrolling */}
+          {mappedPts.map((p, i) => (
+            <View key={i} style={{
+              position: 'absolute',
+              left: p.x - 5,
+              top: p.y - 5,
+              width: i === mappedPts.length - 1 ? 12 : 8,
+              height: i === mappedPts.length - 1 ? 12 : 8,
+              borderRadius: i === mappedPts.length - 1 ? 6 : 4,
+              backgroundColor: i === mappedPts.length - 1 ? '#fff' : color,
+              borderWidth: 2,
+              borderColor: color,
+            }} />
+          ))}
+        </View>
+      </ScrollView>
       
       {/* Time axis labels */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: padL, paddingTop: 4 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 4 }}>
         {labelIndices.map(idx => (
           <Text key={idx} style={{ fontSize: 10, color: theme.inkMuted, minWidth: 40, textAlign: 'center' }}>
             {pts[idx].label || ''}
@@ -87,16 +88,12 @@ export default function LineChart({ data, color, height = 140, theme, showValue 
         ))}
       </View>
       
-      {/* Current value display */}
+      {/* Current value */}
       {showValue && currentVal != null && (
         <View style={{ 
-          position: 'absolute', 
-          right: padR + 4, 
-          top: padT + 8,
+          position: 'absolute', right: 16, top: 8,
           backgroundColor: color + '22',
-          paddingHorizontal: 8,
-          paddingVertical: 3,
-          borderRadius: 6,
+          paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
         }}>
           <Text style={{ fontSize: 13, fontWeight: '700', color: color }}>
             {currentVal % 1 === 0 ? currentVal : currentVal.toFixed(1)}
