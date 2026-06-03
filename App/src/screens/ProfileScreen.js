@@ -14,7 +14,7 @@ export default function ProfileScreen({
   onDisconnect,
   patientName, setPatientName, patientAge, setPatientAge,
 }) {
-  const status = STATUS_LEVELS[statusLvl - 1] || STATUS_LEVELS[0];
+  const status = STATUS_LEVELS.find(s => s.key === statusLvl) || STATUS_LEVELS[1];
   const statusColor = theme[status.colorKey];
   const [deviceOpen, setDeviceOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);

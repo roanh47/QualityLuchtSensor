@@ -7,7 +7,7 @@ import { STATUS_LEVELS } from '../theme';
 const LEVELS = STATUS_LEVELS;
 
 export default function StatusHero({ statusLvl, theme, proMode, timeStr }) {
-  const status = LEVELS[statusLvl - 1] || LEVELS[0];
+  const status = LEVELS.find(s => s.key === statusLvl) || LEVELS[1];
   const statusColor = theme[status.colorKey];
   return (
     <GlassCard theme={theme} radius={28} style={{ padding: 20, marginTop: 4 }}>

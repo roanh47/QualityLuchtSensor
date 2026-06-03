@@ -9,7 +9,7 @@ import Icon from '../components/Icon';
 import { STATUS_LEVELS, SYMPTOMS, getTempHint } from '../theme';
 
 export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, enabledMetrics, sensorData, onDisconnect, timeStr, goldStage, selectedSymptoms, setSelectedSymptoms, symptomIntensity, setSymptomIntensity, patientName }) {
-  const status = STATUS_LEVELS[statusLvl - 1] || STATUS_LEVELS[0];
+  const status = STATUS_LEVELS.find(s => s.key === statusLvl) || STATUS_LEVELS[1];
   const statusColor = theme[status.colorKey];
   const [symptomOpen, setSymptomOpen] = useState(false);
   const [thresholdsOpen, setThresholdsOpen] = useState(false);

@@ -58,6 +58,8 @@ const App = () => {
   const [patientName, setPatientName] = useState('Patient');
   const [patientAge, setPatientAge] = useState('68');
   const [sensorData, setSensorData] = useState(null);
+  const [selectedSymptoms, setSelectedSymptoms] = useState([]);
+  const [symptomIntensity, setSymptomIntensity] = useState(2);
   const [timeStr, setTimeStr] = useState('--:--');
   const statusInterval = useRef(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
@@ -113,6 +115,23 @@ const App = () => {
     if (BLE.isConnected()) await BLE.disconnectDevice();
     setConnected(false);
   }, []);
+
+  // Demo mode: genereer realistische sensorwaarden
+  useEffect(() => {
+    if (!demoMode) return;
+    // Start meteen met demo data
+    const base = { pm25: 4.2, pm10: 8.5, temp: 18.3, nox: 12000 };
+    setSensorData({ ...base });
+    const interval = setInterval(() => {
+      setSensorData(prev => ({
+        pm25: Math.max(0.1, (prev?.pm25 ?? base.pm25) + (Math.random() - 0.48) * 0.8),
+        pm10: Math.max(0.5, (prev?.pm10 ?? base.pm10) + (Math.random() - 0.48) * 1.2),
+        temp: Math.max(-10, (prev?.temp ?? base.temp) + (Math.random() - 0.5) * 0.3),
+        nox: Math.max(5000, (prev?.nox ?? base.nox) + (Math.random() - 0.48) * 800),
+      }));
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [demoMode]);
 
   // Laad opgeslagen profiel bij startup
   useEffect(() => {

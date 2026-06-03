@@ -295,12 +295,17 @@ async def ble_task():
                 print("BLE Client Connected:", connection.device)
                 while connection.is_connected():
                     stat = calc_combined_status(pm25, settings.get("copd", "GOLD 3"), gas_nox)
+                    # write() + notify() apart aanroepen — aioble stuurt geen auto-notify
                     _pm25_char.write(str(round(pm25, 1)).encode())
+                    _pm25_char.notify(connection)
                     _pm10_char.write(str(round(pm10, 1)).encode())
+                    _pm10_char.notify(connection)
                     _temp_char.write(str(round(temp, 1)).encode())
+                    _temp_char.notify(connection)
                     _nox_char.write(str(gas_nox).encode())
+                    _nox_char.notify(connection)
                     _status_char.write(str(stat).encode())
-                    # notify = True bij characteristic aanmaak, write() stuurt automatisch update
+                    _status_char.notify(connection)
                     
                     await asyncio.sleep_ms(1000)
                 print("BLE Client Disconnected")

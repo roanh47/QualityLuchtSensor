@@ -6,10 +6,10 @@ import Icon from '../components/Icon';
 import LineChart from '../components/LineChart';
 import { STATUS_LEVELS, generateTrendData } from '../theme';
 
-const RANGE_POINTS = { day: 24, week: 7, month: 30 };
+const RANGE_POINTS = { day: 60, week: 42, month: 60 };
 
 export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode, demoMode, sensorData, goldStage }) {
-  const status = STATUS_LEVELS[statusLvl - 1] || STATUS_LEVELS[0];
+  const status = STATUS_LEVELS.find(s => s.key === statusLvl) || STATUS_LEVELS[1];
   const statusColor = theme[status.colorKey];
   const [range, setRange] = useState('week');
   const [tick, setTick] = useState(0);
@@ -40,7 +40,7 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
     }
   }, [sensorData]);
 
-  // Collect a data point every 30 seconds (not every second!)
+  // Collect a data point every 5 seconds for realtime updates
   useEffect(() => {
     const interval = setInterval(() => {
       if (historyRef.current === null) return;
@@ -60,7 +60,7 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
         historyRef.current = historyRef.current.slice(-max);
       }
       setTick(t => t + 1);
-    }, 30000);
+    }, 5000);
     return () => clearInterval(interval);
   }, [range]);
 
