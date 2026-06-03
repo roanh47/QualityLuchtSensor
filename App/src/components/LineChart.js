@@ -79,14 +79,20 @@ export default function LineChart({ data, color, height = 140, theme, showValue 
         </View>
       </ScrollView>
       
-      {/* Time axis labels */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 4 }}>
-        {labelIndices.map(idx => (
-          <Text key={idx} style={{ fontSize: 10, color: theme.inkMuted, minWidth: 40, textAlign: 'center' }}>
-            {pts[idx].label || ''}
-          </Text>
-        ))}
-      </View>
+      {/* Time axis labels - show every point's time */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ width: chartWidth, paddingHorizontal: 0 }}>
+        <View style={{ width: chartWidth, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 0 }}>
+          {mappedPts.map((p, i) => (
+            <Text key={i} style={{ 
+              fontSize: 9, color: theme.inkMuted, 
+              minWidth: 40, textAlign: 'center',
+              marginLeft: i === 0 ? 0 : 40, // align with point
+            }}>
+              {p.label || ''}
+            </Text>
+          ))}
+        </View>
+      </ScrollView>
       
       {/* Current value */}
       {showValue && currentVal != null && (
