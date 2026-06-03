@@ -17,8 +17,6 @@ function getManager() {
 
 let connectedDevice = null;
 let monitorSubscriptions = [];
-let pollInterval = null;
-let cachedChars = [];
 let onDataCallback = null;
 let onDisconnectCallback = null;
 let disconnectSubscription = null;
@@ -72,11 +70,8 @@ export function stopScan() {
 
 export async function connectToDevice(device) {
   try {
-    console.log('[BLE] Connecting to', device.id, device.name);
     connectedDevice = await device.connect();
-    console.log('[BLE] Connected, discovering services...');
     await connectedDevice.discoverAllServicesAndCharacteristics();
-    console.log('[BLE] Services discovered');
     // Luister naar onverwachtse disconnect van de Pico
     disconnectSubscription = connectedDevice.onDisconnected((err) => {
       console.log('Device disconnected:', err ? err.message : 'unknown');
@@ -125,160 +120,81 @@ function removeSubscriptions() {
     if (sub) sub.remove();
   }
   monitorSubscriptions = [];
-  stopPollFallback();
-  cachedChars = [];
 }
 
-// Poll fallback: als monitor niet werkt, lees periodiek
-function startPollFallback() {
-  stopPollFallback();
-  if (!connectedDevice || cachedChars.length === 0) return;
-  pollInterval = setInterval(async () => {
-    if (!connectedDevice) { stopPollFallback(); return; }
-    for (const { char: c, uuid: fullUUID } of cachedChars) {
-      try {
-        const val = await c.read();
-        if (val && val.value) {
-          const parsed = parseSingleChar(fullUUID, val.value);
-          if (parsed !== undefined) {
-            latestValues[fullUUID] = parsed;
-          }
-        }
-      } catch (_) {}
-    }
-    notifyDataIfReady();
-  }, 1000);
-}
-
-function stopPollFallback() {
-  if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
-}
-
-// Helper: map verkorte UUID (evt. "FFE1") naar volledige UUID
-const CHAR_UUID_MAP = {};
-const ALL_CHAR_UUIDS = [
-  BLE_CONFIG.PM25_CHAR_UUID,
-  BLE_CONFIG.PM10_CHAR_UUID,
-  BLE_CONFIG.TEMP_CHAR_UUID,
-  BLE_CONFIG.NOX_CHAR_UUID,
-  BLE_CONFIG.STATUS_CHAR_UUID,
-];
-for (const full of ALL_CHAR_UUIDS) {
-  const short = full.split('-')[0]; // "0000FFE1"
-  CHAR_UUID_MAP[short] = full;
-  CHAR_UUID_MAP[full] = full;
-  // Ook lowercase variants
-  CHAR_UUID_MAP[full.toLowerCase()] = full;
-  CHAR_UUID_MAP[short.toLowerCase()] = full;
-}
-
-function resolveUUID(raw) {
-  if (!raw) return null;
-  const upper = raw.toUpperCase();
-  // Direct match
-  if (CHAR_UUID_MAP[upper]) return CHAR_UUID_MAP[upper];
-  // Kort formaat: "0000FFE1" of "FFE1"
-  const short = upper.replace(/^0000/, '');
-  if (CHAR_UUID_MAP['0000' + short]) return CHAR_UUID_MAP['0000' + short];
-  // Fallback: check of het einde overeenkomt
-  for (const full of ALL_CHAR_UUIDS) {
-    if (full.toUpperCase().endsWith(upper) || upper.endsWith(full.split('-')[0].replace('0000', ''))) {
-      return full;
-    }
+function notifyDataIfReady() {
+  if (!onDataCallback) return;
+  const pm25 = latestValues[BLE_CONFIG.PM25_CHAR_UUID];
+  const pm10 = latestValues[BLE_CONFIG.PM10_CHAR_UUID];
+  const temp = latestValues[BLE_CONFIG.TEMP_CHAR_UUID];
+  const nox = latestValues[BLE_CONFIG.NOX_CHAR_UUID];
+  const statusLevel = latestValues[BLE_CONFIG.STATUS_CHAR_UUID];
+  // Fire zodra we minimaal PM2.5 hebben (eerste meetronde binnen)
+  if (pm25 !== undefined) {
+    onDataCallback({ pm25, pm10, temp, nox, statusLevel });
   }
-  return null;
 }
 
 function parseSingleChar(uuid, base64Value) {
   try {
-    console.log(`[BLE] parseSingleChar uuid=${uuid} raw=${base64Value}`);
     const decoded = atob(base64Value);
-    console.log(`[BLE] decoded="${decoded}"`);
     if (!decoded) return undefined;
     if (uuid === BLE_CONFIG.PM25_CHAR_UUID) return parseFloat(decoded);
     if (uuid === BLE_CONFIG.PM10_CHAR_UUID) return parseFloat(decoded);
     if (uuid === BLE_CONFIG.TEMP_CHAR_UUID) return parseFloat(decoded);
     if (uuid === BLE_CONFIG.NOX_CHAR_UUID) return parseFloat(decoded);
     if (uuid === BLE_CONFIG.STATUS_CHAR_UUID) return parseInt(decoded, 10);
-  } catch (e) {
-    console.log('[BLE] parseSingleChar error:', e.message);
-  }
+  } catch (e) {}
   return undefined;
 }
 
 async function subscribeToNotifications() {
   if (!connectedDevice) return;
   removeSubscriptions();
-  stopPollFallback();
-  cachedChars = [];
   Object.keys(latestValues).forEach(k => delete latestValues[k]);
 
   try {
     const services = await connectedDevice.services();
-    console.log('[BLE] Discovered services:', services.length);
     for (const service of services) {
-      console.log('[BLE] Service:', service.uuid);
-      const characteristics = await service.characteristics();
-      console.log('[BLE] Chars in service:', characteristics.length);
-      for (const char of characteristics) {
-        const fullUUID = resolveUUID(char.uuid);
-        if (!fullUUID) {
-          console.log('[BLE] Skipping non-matching char:', char.uuid);
-          continue;
-        }
+      if (service.uuid.toUpperCase() === BLE_CONFIG.SERVICE_UUID) {
+        const characteristics = await service.characteristics();
 
-        console.log(`[BLE] Matched char: ${char.uuid} -> ${fullUUID} (notifiable=${char.isNotifiable})`);
+        for (const char of characteristics) {
+          const uuid = char.uuid.toUpperCase();
+          if (
+            uuid !== BLE_CONFIG.PM25_CHAR_UUID &&
+            uuid !== BLE_CONFIG.PM10_CHAR_UUID &&
+            uuid !== BLE_CONFIG.TEMP_CHAR_UUID &&
+            uuid !== BLE_CONFIG.NOX_CHAR_UUID &&
+            uuid !== BLE_CONFIG.STATUS_CHAR_UUID
+          ) continue;
 
-        // Eerste waarde direct uitlezen (Pico heeft beginwaarden klaarstaan)
-        try {
-          const initRead = await char.read();
-          if (initRead && initRead.value) {
-            console.log(`[BLE] Init read ${fullUUID} = ${initRead.value}`);
-            const val = parseSingleChar(fullUUID, initRead.value);
-            if (val !== undefined) latestValues[fullUUID] = val;
-          }
-        } catch (e) {
-          console.log('[BLE] Init read failed for', fullUUID, e.message);
-        }
+          // Eerste waarde direct uitlezen (Pico heeft beginwaarden klaarstaan)
+          try {
+            const initRead = await char.read();
+            if (initRead && initRead.value) {
+              const val = parseSingleChar(uuid, initRead.value);
+              if (val !== undefined) latestValues[uuid] = val;
+            }
+          } catch (_) {}
 
-        // Cache voor poll fallback
-        cachedChars.push({ char, uuid: fullUUID });
-
-        // Subscribe op notifications — Pico pusht elke 1s
-        try {
+          // Subscribe op notifications — Pico pusht elke 1s
           const sub = char.monitor((error, updatedChar) => {
             if (error) {
-              console.log('[BLE] Monitor error for', fullUUID, ':', error);
+              console.log('Monitor error:', error);
               return;
             }
-            if (!updatedChar || !updatedChar.value) {
-              console.log('[BLE] Monitor: no value for', fullUUID);
-              return;
-            }
-            console.log(`[BLE] Monitor update: ${fullUUID} = ${updatedChar.value}`);
-            const val = parseSingleChar(fullUUID, updatedChar.value);
+            if (!updatedChar || !updatedChar.value) return;
+            const val = parseSingleChar(uuid, updatedChar.value);
             if (val !== undefined) {
-              latestValues[fullUUID] = val;
+              latestValues[uuid] = val;
               notifyDataIfReady();
             }
           });
           monitorSubscriptions.push(sub);
-          console.log('[BLE] Monitor subscription added for', fullUUID);
-        } catch (e) {
-          console.log('[BLE] Monitor setup failed for', fullUUID, e.message);
         }
+        break;
       }
-    }
-
-    // Eerste callback met init waarden
-    notifyDataIfReady();
-
-    // Start poll fallback (leest characteristics elke 1s als backup)
-    if (monitorSubscriptions.length === 0 && cachedChars.length > 0) {
-      console.log('[BLE] No monitors active, starting poll fallback');
-      startPollFallback();
-    } else {
-      console.log('[BLE]', monitorSubscriptions.length, 'monitors active, no poll needed');
     }
   } catch (e) {
     console.log('Subscribe error:', e);
@@ -287,7 +203,6 @@ async function subscribeToNotifications() {
 
 export function clear() {
   removeSubscriptions();
-  stopPollFallback();
   if (disconnectSubscription) {
     disconnectSubscription.remove();
     disconnectSubscription = null;
