@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, AppRegistry, StatusBar, SafeAreaView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { THEMES, pm25ToStatusLvl } from './src/theme';
+import { THEMES, pm25ToStatusLvl, NOX_THRESHOLDS } from './src/theme';
 import TabBar from './src/components/TabBar';
 import ConnectScreen from './src/screens/ConnectScreen';
 import OverviewScreen from './src/screens/OverviewScreen';
@@ -16,13 +16,12 @@ const GOLD_THRESHOLDS = {
   'GOLD 4': { green: 2, yellow: 5, orange: 10, red: 14 },
 };
 
-const NOX_THRESHOLDS = { green: 18000, yellow: 25000, orange: 35000, red: 45000 };
-
-function calcNoxLevel(nox) {
-  if (nox >= NOX_THRESHOLDS.red) return 5;
-  if (nox >= NOX_THRESHOLDS.orange) return 4;
-  if (nox >= NOX_THRESHOLDS.yellow) return 3;
-  if (nox >= NOX_THRESHOLDS.green) return 2;
+function calcNoxLevel(nox, goldStage) {
+  const t = NOX_THRESHOLDS[goldStage] || NOX_THRESHOLDS['GOLD 3'];
+  if (nox >= t.red) return 5;
+  if (nox >= t.orange) return 4;
+  if (nox >= t.yellow) return 3;
+  if (nox >= t.green) return 2;
   return 1;
 }
 
@@ -38,7 +37,7 @@ function calcStatusLevel(pm25, goldStage) {
 function calcCombinedStatus(sd, goldStage) {
   if (!sd || (sd.pm25 == null && sd.nox == null && sd.pm10 == null)) return 0; // geen data
   const pmLevel = calcStatusLevel(sd.pm25 ?? 0, goldStage);
-  const noxLevel = calcNoxLevel(sd.nox ?? 0);
+  const noxLevel = calcNoxLevel(sd.nox ?? 0, goldStage);
   return Math.max(pmLevel, noxLevel);
 }
 

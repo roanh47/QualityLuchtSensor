@@ -4,7 +4,7 @@ import GlassCard from '../components/GlassCard';
 import AmbientBg from '../components/AmbientBg';
 import Icon from '../components/Icon';
 import LineChart from '../components/LineChart';
-import { STATUS_LEVELS, generateTrendData } from '../theme';
+import { STATUS_LEVELS, generateTrendData, PM10_THRESHOLDS, NOX_THRESHOLDS } from '../theme';
 
 const RANGE_POINTS = { day: 60, week: 42, month: 60 };
 
@@ -71,7 +71,6 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
     'GOLD 3': { green: 3, yellow: 6, orange: 12, red: 16 },
     'GOLD 4': { green: 2, yellow: 5, orange: 10, red: 14 },
   };
-  const NOX_THRESHOLDS = { green: 18000, yellow: 25000, orange: 35000, red: 45000 };
 
   function calcPmLevel(v, g) {
     const t = GOLD_THRESHOLDS[g] || GOLD_THRESHOLDS['GOLD 3'];
@@ -82,17 +81,18 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
     return 1;
   }
 
-  function calcNoxLevel(nox) {
-    if (nox >= NOX_THRESHOLDS.red) return 5;
-    if (nox >= NOX_THRESHOLDS.orange) return 4;
-    if (nox >= NOX_THRESHOLDS.yellow) return 3;
-    if (nox >= NOX_THRESHOLDS.green) return 2;
+  function calcNoxLevel(nox, g) {
+    const t = NOX_THRESHOLDS[g] || NOX_THRESHOLDS['GOLD 3'];
+    if (nox >= t.red) return 5;
+    if (nox >= t.orange) return 4;
+    if (nox >= t.yellow) return 3;
+    if (nox >= t.green) return 2;
     return 1;
   }
 
   function calcCombined(v_pm25, v_nox) {
     const pm = calcPmLevel(v_pm25, goldStage);
-    const nx = calcNoxLevel(v_nox);
+    const nx = calcNoxLevel(v_nox, goldStage);
     return { level: Math.max(pm, nx), pm, nx };
   }
 

@@ -6,7 +6,7 @@ import MetricCard from '../components/MetricCard';
 import SymptomRow from '../components/SymptomRow';
 import AmbientBg from '../components/AmbientBg';
 import Icon from '../components/Icon';
-import { STATUS_LEVELS, SYMPTOMS, getTempHint } from '../theme';
+import { STATUS_LEVELS, SYMPTOMS, getTempHint, PM10_THRESHOLDS, NOX_THRESHOLDS } from '../theme';
 
 export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, enabledMetrics, sensorData, onDisconnect, timeStr, goldStage, selectedSymptoms, setSelectedSymptoms, symptomIntensity, setSymptomIntensity, patientName }) {
   const status = STATUS_LEVELS.find(s => s.key === statusLvl) || STATUS_LEVELS[1];
@@ -21,14 +21,15 @@ export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, en
     'GOLD 3': { green: 3, yellow: 6, orange: 12, red: 16 },
     'GOLD 4': { green: 2, yellow: 5, orange: 10, red: 14 },
   };
-  const NOX_THRESHOLDS = { green: 18000, yellow: 25000, orange: 35000, red: 45000 };
   const goldCfg = GOLD_THRESHOLDS[goldStage] || GOLD_THRESHOLDS['GOLD 3'];
+  const pm10Cfg = PM10_THRESHOLDS[goldStage] || PM10_THRESHOLDS['GOLD 3'];
+  const noxCfg = NOX_THRESHOLDS[goldStage] || NOX_THRESHOLDS['GOLD 3'];
 
   const metrics = {
-    pm25: { v: sd.pm25 ?? '--', unit: 'µg/m³', norm: goldCfg.red, label: 'PM2.5', sub: 'Fijnstof — grenswaarde ' + goldCfg.red + ' ' + goldStage },
-    pm10: { v: sd.pm10 ?? '--', unit: 'µg/m³', norm: 50, label: 'PM10', sub: 'Grof stof — grenswaarde 50 µg/m³' },
+    pm25: { v: sd.pm25 ?? '--', unit: 'µg/m³', norm: goldCfg.red, label: 'PM2.5', sub: 'Fijnstof — grenswaarde ' + goldCfg.red + ' µg/m³ (' + goldStage + ')' },
+    pm10: { v: sd.pm10 ?? '--', unit: 'µg/m³', norm: pm10Cfg.red, label: 'PM10', sub: 'Grof stof — grenswaarde ' + pm10Cfg.red + ' µg/m³ (' + goldStage + ')' },
     temp: { v: sd.temp ?? '--', unit: '°C', norm: 30, label: 'Temperatuur', sub: 'Buitenlucht' },
-    nox: { v: sd.nox ?? '--', unit: 'ticks', norm: 45000, label: 'NOx', sub: 'Stikstofoxiden' },
+    nox: { v: sd.nox ?? '--', unit: 'ticks', norm: noxCfg.red, label: 'NOx', sub: 'Stikstofoxiden — grenswaarde ' + noxCfg.red + ' ticks (' + goldStage + ')' },
   };
   const metricColors = { pm25: theme.s3, pm10: theme.s4, temp: theme.accent, nox: theme.s1 };
 

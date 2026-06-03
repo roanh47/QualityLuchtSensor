@@ -83,6 +83,22 @@ export function pm25ToStatusLvl(pm25) {
   return 4;
 }
 
+// PM10 thresholds per GOLD stadium (µg/m³) - hoger GOLD = strengere drempels
+export const PM10_THRESHOLDS = {
+  'GOLD 1': { green: 20, yellow: 35, orange: 50, red: 70 },
+  'GOLD 2': { green: 18, yellow: 30, orange: 42, red: 55 },
+  'GOLD 3': { green: 15, yellow: 25, orange: 35, red: 45 },
+  'GOLD 4': { green: 12, yellow: 20, orange: 28, red: 35 },
+};
+
+// NOx thresholds per GOLD stadium (ticks) - hoger GOLD = strengere drempels
+export const NOX_THRESHOLDS = {
+  'GOLD 1': { green: 20000, yellow: 28000, orange: 40000, red: 50000 },
+  'GOLD 2': { green: 16000, yellow: 24000, orange: 35000, red: 45000 },
+  'GOLD 3': { green: 14000, yellow: 21000, orange: 30000, red: 40000 },
+  'GOLD 4': { green: 12000, yellow: 18000, orange: 25000, red: 35000 },
+};
+
 export function generateTrendData(currentValue, points = 7) {
   const seeds = [0.7, 0.5, 0.9, 0.65, 0.8, 0.95, 1.0];
   const labels = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
