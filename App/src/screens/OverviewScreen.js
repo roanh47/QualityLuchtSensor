@@ -26,11 +26,11 @@ export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, en
 
   const metrics = {
     pm25: { v: sd.pm25 ?? '--', unit: 'µg/m³', norm: goldCfg.red, label: 'PM2.5', sub: 'Fijnstof — grenswaarde ' + goldCfg.red + ' ' + goldStage },
-    no2: { v: sd.pm10 != null ? sd.pm10 * 0.5 : '--', unit: 'µg/m³', norm: 25, label: 'NO₂', sub: 'Stikstofdioxide' },
+    pm10: { v: sd.pm10 ?? '--', unit: 'µg/m³', norm: 50, label: 'PM10', sub: 'Grof stof — grenswaarde 50 µg/m³' },
     temp: { v: sd.temp ?? '--', unit: '°C', norm: 30, label: 'Temperatuur', sub: 'Buitenlucht' },
-    gas: { v: sd.nox ?? '--', unit: 'ticks', norm: 45000, label: 'NOx', sub: 'Stikstofoxiden' },
+    nox: { v: sd.nox ?? '--', unit: 'ticks', norm: 45000, label: 'NOx', sub: 'Stikstofoxiden' },
   };
-  const metricColors = { pm25: theme.s3, no2: theme.s4, temp: theme.accent, gas: theme.s1 };
+  const metricColors = { pm25: theme.s3, pm10: theme.s4, temp: theme.accent, nox: theme.s1 };
 
   const tempHint = sd.temp != null ? getTempHint(sd.temp) : '--';
 
@@ -108,9 +108,9 @@ export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, en
                   <MetricCard {...metrics.pm25} color={metricColors.pm25} theme={theme} />
                 </View>
               )}
-              {enabledMetrics.no2 && (
+              {enabledMetrics.pm10 && (
                 <View style={{ width: '48%', flexGrow: 1 }}>
-                  <MetricCard {...metrics.no2} color={metricColors.no2} theme={theme} />
+                  <MetricCard {...metrics.pm10} color={metricColors.pm10} theme={theme} />
                 </View>
               )}
               {enabledMetrics.temp && (
@@ -118,9 +118,9 @@ export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, en
                   <MetricCard {...metrics.temp} color={metricColors.temp} theme={theme} />
                 </View>
               )}
-              {enabledMetrics.gas && (
+              {enabledMetrics.nox && (
                 <View style={{ width: '48%', flexGrow: 1 }}>
-                  <MetricCard {...metrics.gas} color={metricColors.gas} theme={theme} />
+                  <MetricCard {...metrics.nox} color={metricColors.nox} theme={theme} />
                 </View>
               )}
             </View>

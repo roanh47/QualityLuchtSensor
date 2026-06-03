@@ -53,7 +53,7 @@ const App = () => {
   const [goldStage, setGoldStage] = useState('GOLD 3');
   const [statusLvl, setStatusLvl] = useState(0);
   const [enabledMetrics, setEnabledMetrics] = useState({
-    pm25: true, no2: true, temp: true, gas: true,
+    pm25: true, pm10: true, temp: true, nox: true,
   });
   const [patientName, setPatientName] = useState('Patient');
   const [patientAge, setPatientAge] = useState('68');

@@ -38,9 +38,9 @@ export default function ProfileScreen({
 
   const metricConfig = [
     { key: 'pm25', label: 'PM2.5', sub: 'Fijnstof', color: theme.s3, icon: 'dust' },
-    { key: 'no2', label: 'NO₂', sub: 'Stikstofdioxide', color: theme.s4, icon: 'wind' },
+    { key: 'pm10', label: 'PM10', sub: 'Grof stof', color: theme.s4, icon: 'wind' },
     { key: 'temp', label: 'Temperatuur', sub: 'Buitenlucht', color: theme.accent, icon: 'thermo' },
-    { key: 'gas', label: 'NOx', sub: 'Stikstofoxiden', color: theme.s1, icon: 'chemical' },
+    { key: 'nox', label: 'NOx', sub: 'Stikstofoxiden', color: theme.s1, icon: 'chemical' },
   ];
 
   return (

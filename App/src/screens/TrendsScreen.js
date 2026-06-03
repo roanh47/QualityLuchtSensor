@@ -110,16 +110,16 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
 
   const currentValues = {
     pm25: sdRef.current.pm25 ?? 0,
-    no2: sdRef.current.pm10 != null ? sdRef.current.pm10 * 0.5 : 0,
+    pm10: sdRef.current.pm10 ?? 0,
     temp: sdRef.current.temp ?? 0,
-    gas: sdRef.current.nox ?? 0,
+    nox: sdRef.current.nox ?? 0,
   };
 
   const cards = [
     enabledMetrics.pm25 && { k: 'pm25', label: 'PM2.5', sub: 'Fijnstof', unit: 'µg/m³', color: theme.s3, v: currentValues.pm25 },
-    enabledMetrics.no2  && { k: 'no2',  label: 'NO₂',   sub: 'Stikstofdioxide', unit: 'µg/m³', color: theme.s4, v: currentValues.no2 },
+    enabledMetrics.pm10  && { k: 'pm10',  label: 'PM10',   sub: 'Grof stof', unit: 'µg/m³', color: theme.s4, v: currentValues.pm10 },
     enabledMetrics.temp && { k: 'temp', label: 'Temperatuur', sub: 'Buitenlucht', unit: '°C', color: theme.accent, v: currentValues.temp },
-    enabledMetrics.gas  && { k: 'gas',  label: 'NOx', sub: 'Stikstofoxiden',    unit: 'ticks',  color: theme.s1, v: currentValues.gas },
+    enabledMetrics.nox  && { k: 'nox',  label: 'NOx', sub: 'Stikstofoxiden',    unit: 'ticks',  color: theme.s1, v: currentValues.nox },
   ].filter(Boolean);
 
   const rangeOpts = [
