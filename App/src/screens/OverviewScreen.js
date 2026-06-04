@@ -356,8 +356,6 @@ export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, en
           </View>
         </TouchableOpacity>
       </Modal>
-        </TouchableOpacity>
-      </Modal>
     </View>
   );
 }
