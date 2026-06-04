@@ -83,7 +83,15 @@ export function pm25ToStatusLvl(pm25) {
   return 4;
 }
 
-// PM10 thresholds per GOLD stadium (µg/m³) - hoger GOLD = strengere drempels
+// PM2.5 thresholds per GOLD stadium (µg/m³) - gebaseerd op WHO + COPD-gevoeligheid
+export const PM25_THRESHOLDS = {
+  'GOLD 1': { green: 5, yellow: 10, orange: 20, red: 25 },
+  'GOLD 2': { green: 4, yellow: 8, orange: 16, red: 20 },
+  'GOLD 3': { green: 3, yellow: 6, orange: 12, red: 16 },
+  'GOLD 4': { green: 2, yellow: 5, orange: 10, red: 14 },
+};
+
+// PM10 thresholds per GOLD stadium (µg/m³) - gebaseerd op WHO + COPD-gevoeligheid
 export const PM10_THRESHOLDS = {
   'GOLD 1': { green: 20, yellow: 35, orange: 50, red: 70 },
   'GOLD 2': { green: 18, yellow: 30, orange: 42, red: 55 },
@@ -91,13 +99,94 @@ export const PM10_THRESHOLDS = {
   'GOLD 4': { green: 12, yellow: 20, orange: 28, red: 35 },
 };
 
-// NOx thresholds per GOLD stadium (ticks) - hoger GOLD = strengere drempels
+// NOx thresholds per GOLD stadium (ticks) - gebaseerd op stikstofoxide-gevoeligheid
 export const NOX_THRESHOLDS = {
   'GOLD 1': { green: 20000, yellow: 28000, orange: 40000, red: 50000 },
   'GOLD 2': { green: 16000, yellow: 24000, orange: 35000, red: 45000 },
   'GOLD 3': { green: 14000, yellow: 21000, orange: 30000, red: 40000 },
   'GOLD 4': { green: 12000, yellow: 18000, orange: 25000, red: 35000 },
 };
+
+// Temperatuur drempels per GOLD stadium — kou en warmte zijn beide gevaarlijk
+// cold: onder deze waarden neemt het risico toe (groen = nog veilig, rood = gevaarlijk koud)
+// hot: boven deze waarden neemt het risico toe (groen = nog veilig, rood = gevaarlijk heet)
+export const TEMP_THRESHOLDS = {
+  'GOLD 1': {
+    cold: { green: 2, yellow: -2, orange: -8, red: -15 },
+    hot:  { green: 30, yellow: 33, orange: 36, red: 38 },
+  },
+  'GOLD 2': {
+    cold: { green: 5, yellow: 1, orange: -4, red: -10 },
+    hot:  { green: 28, yellow: 31, orange: 34, red: 36 },
+  },
+  'GOLD 3': {
+    cold: { green: 7, yellow: 3, orange: -1, red: -6 },
+    hot:  { green: 26, yellow: 29, orange: 32, red: 34 },
+  },
+  'GOLD 4': {
+    cold: { green: 10, yellow: 6, orange: 2, red: -2 },
+    hot:  { green: 25, yellow: 27, orange: 30, red: 33 },
+  },
+};
+
+// Alle thresholds per sensor type (voor weergave in modal)
+export const ALL_THRESHOLDS = {
+  pm25: { label: 'PM2.5', unit: 'µg/m³', data: PM25_THRESHOLDS },
+  pm10: { label: 'PM10', unit: 'µg/m³', data: PM10_THRESHOLDS },
+  temp: { label: 'Temperatuur', unit: '°C', data: TEMP_THRESHOLDS },
+  nox:  { label: 'NOx', unit: 'ticks', data: NOX_THRESHOLDS },
+};
+
+// Bereken niveau (1-4) voor een standaard drempeltabel (PM2.5, PM10, NOx)
+// 1=uitstekend, 2=goed, 3=voorzichtig, 4=gevaarlijk
+function calcStandardLevel(value, thresholds) {
+  if (value >= thresholds.red) return 4;
+  if (value >= thresholds.orange) return 3;
+  if (value >= thresholds.yellow) return 2;
+  return 1;
+}
+
+// Bereken temperatuur niveau (1-4) — check zowel kou als warmte
+function calcTempLevel(temp, goldStage) {
+  const t = TEMP_THRESHOLDS[goldStage] || TEMP_THRESHOLDS['GOLD 3'];
+  // Kou: hoe lager, hoe erger
+  let coldLevel = 1;
+  if (temp < t.cold.red) coldLevel = 4;
+  else if (temp < t.cold.orange) coldLevel = 3;
+  else if (temp < t.cold.yellow) coldLevel = 2;
+  else if (temp < t.cold.green) coldLevel = 2;
+  // Warmte: hoe hoger, hoe erger
+  let hotLevel = 1;
+  if (temp > t.hot.red) hotLevel = 4;
+  else if (temp > t.hot.orange) hotLevel = 3;
+  else if (temp > t.hot.yellow) hotLevel = 2;
+  else if (temp > t.hot.green) hotLevel = 2;
+  // Neem de slechtste van kou en warmte
+  return Math.max(coldLevel, hotLevel);
+}
+
+// Overal kwaliteit berekenen op basis van ALLE 4 sensoren
+// De slechtste sensor bepaalt het overall niveau
+// 1=uitstekend, 2=goed, 3=voorzichtig, 4=gevaarlijk
+export function calcOverallQuality(pm25, pm10, temp, nox, goldStage) {
+  const levels = [];
+  if (pm25 != null) levels.push(calcStandardLevel(pm25, PM25_THRESHOLDS[goldStage] || PM25_THRESHOLDS['GOLD 3']));
+  if (pm10 != null) levels.push(calcStandardLevel(pm10, PM10_THRESHOLDS[goldStage] || PM10_THRESHOLDS['GOLD 3']));
+  if (temp != null) levels.push(calcTempLevel(temp, goldStage));
+  if (nox != null) levels.push(calcStandardLevel(nox, NOX_THRESHOLDS[goldStage] || NOX_THRESHOLDS['GOLD 3']));
+  if (levels.length === 0) return 1;
+  return Math.max(...levels);
+}
+
+// Hulpfunctie: bereken individueel sensor niveau (voor weergave)
+export function calcSensorLevel(sensorKey, value, goldStage) {
+  if (value == null) return 1;
+  if (sensorKey === 'temp') return calcTempLevel(value, goldStage);
+  const thresholdsMap = { pm25: PM25_THRESHOLDS, pm10: PM10_THRESHOLDS, nox: NOX_THRESHOLDS };
+  const thresholds = thresholdsMap[sensorKey];
+  if (!thresholds) return 1;
+  return calcStandardLevel(value, thresholds[goldStage] || thresholds['GOLD 3']);
+}
 
 export function generateTrendData(currentValue, points = 7) {
   const seeds = [0.7, 0.5, 0.9, 0.65, 0.8, 0.95, 1.0];

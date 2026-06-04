@@ -6,29 +6,24 @@ import MetricCard from '../components/MetricCard';
 import SymptomRow from '../components/SymptomRow';
 import AmbientBg from '../components/AmbientBg';
 import Icon from '../components/Icon';
-import { STATUS_LEVELS, SYMPTOMS, getTempHint, PM10_THRESHOLDS, NOX_THRESHOLDS } from '../theme';
+import { STATUS_LEVELS, SYMPTOMS, getTempHint, PM25_THRESHOLDS, PM10_THRESHOLDS, NOX_THRESHOLDS, TEMP_THRESHOLDS, ALL_THRESHOLDS, calcSensorLevel } from '../theme';
 
 export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, enabledMetrics, sensorData, onDisconnect, timeStr, goldStage, selectedSymptoms, setSelectedSymptoms, symptomIntensity, setSymptomIntensity, patientName }) {
   const status = STATUS_LEVELS.find(s => s.key === statusLvl) || STATUS_LEVELS[1];
   const statusColor = theme[status.colorKey];
   const [symptomOpen, setSymptomOpen] = useState(false);
   const [thresholdsOpen, setThresholdsOpen] = useState(false);
+  const [compareGold, setCompareGold] = useState(null); // null = eigen niveau
   const sd = sensorData || {};
 
-  const GOLD_THRESHOLDS = {
-    'GOLD 1': { green: 5, yellow: 10, orange: 20, red: 25 },
-    'GOLD 2': { green: 4, yellow: 8, orange: 16, red: 20 },
-    'GOLD 3': { green: 3, yellow: 6, orange: 12, red: 16 },
-    'GOLD 4': { green: 2, yellow: 5, orange: 10, red: 14 },
-  };
-  const goldCfg = GOLD_THRESHOLDS[goldStage] || GOLD_THRESHOLDS['GOLD 3'];
+  const goldCfg = PM25_THRESHOLDS[goldStage] || PM25_THRESHOLDS['GOLD 3'];
   const pm10Cfg = PM10_THRESHOLDS[goldStage] || PM10_THRESHOLDS['GOLD 3'];
   const noxCfg = NOX_THRESHOLDS[goldStage] || NOX_THRESHOLDS['GOLD 3'];
 
   const metrics = {
     pm25: { v: sd.pm25 ?? '--', unit: 'µg/m³', norm: goldCfg.red, label: 'PM2.5', sub: 'Fijnstof — grenswaarde ' + goldCfg.red + ' µg/m³ (' + goldStage + ')' },
     pm10: { v: sd.pm10 ?? '--', unit: 'µg/m³', norm: pm10Cfg.red, label: 'PM10', sub: 'Grof stof — grenswaarde ' + pm10Cfg.red + ' µg/m³ (' + goldStage + ')' },
-    temp: { v: sd.temp ?? '--', unit: '°C', norm: 30, label: 'Temperatuur', sub: 'Buitenlucht' },
+    temp: { v: sd.temp ?? '--', unit: '°C', norm: TEMP_THRESHOLDS[goldStage]?.hot?.red ?? 34, label: 'Temperatuur', sub: 'Buitenlucht' },
     nox: { v: sd.nox ?? '--', unit: 'ticks', norm: noxCfg.red, label: 'NOx', sub: 'Stikstofoxiden — grenswaarde ' + noxCfg.red + ' ticks (' + goldStage + ')' },
   };
   const metricColors = { pm25: theme.s3, pm10: theme.s4, temp: theme.accent, nox: theme.s1 };
@@ -209,82 +204,148 @@ export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, en
         <TouchableOpacity
           style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }}
           activeOpacity={1}
-          onPress={() => setThresholdsOpen(false)}
+          onPress={() => { setThresholdsOpen(false); setCompareGold(null); }}
         >
           <View style={{
             backgroundColor: 'rgba(255,255,255,0.9)',
             borderTopLeftRadius: 32, borderTopRightRadius: 32,
             padding: 18, paddingBottom: 40,
+            maxHeight: '85%',
           }}>
             <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(0,0,0,0.18)', alignSelf: 'center', marginBottom: 18 }} />
             <Text style={{ fontSize: 20, fontWeight: '700', color: theme.ink, letterSpacing: -0.3, marginBottom: 4 }}>
               Grenswaarden
             </Text>
-            <Text style={{ fontSize: 13, color: theme.inkSoft, marginBottom: 16, lineHeight: 18 }}>
-              Drempelwaarden per COPD fase. Jouw huidige fase is {goldStage} (gemarkeerd).
+            <Text style={{ fontSize: 13, color: theme.inkSoft, marginBottom: 12, lineHeight: 18 }}>
+              Drempelwaarden per COPD fase. Jouw fase is {goldStage}.
             </Text>
 
-            {/* Alle GOLD niveaus tonen */}
-            {['GOLD 1', 'GOLD 2', 'GOLD 3', 'GOLD 4'].map((gStage) => {
-              const cfg = GOLD_THRESHOLDS[gStage];
-              const isCurrent = gStage === goldStage;
-              return (
-                <View key={gStage} style={{
-                  marginBottom: 14,
-                  borderWidth: isCurrent ? 1.5 : 0,
-                  borderColor: isCurrent ? theme.accent : 'transparent',
-                  borderRadius: 14,
-                  padding: isCurrent ? 10 : 0,
-                  backgroundColor: isCurrent ? `${theme.accent}08` : 'transparent',
-                }}>
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: isCurrent ? theme.accent : theme.ink, marginBottom: 6 }}>
-                    PM2.5 ({gStage}){isCurrent ? '  ← Jouw fase' : ''}
+            {/* Dropdown om ander GOLD niveau te vergelijken */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: theme.inkSoft }}>Vergelijk met:</Text>
+              <View style={{ flexDirection: 'row', gap: 4 }}>
+                <TouchableOpacity
+                  onPress={() => setCompareGold(null)}
+                  style={{
+                    paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10,
+                    backgroundColor: compareGold === null ? theme.accent : 'rgba(0,0,0,0.06)',
+                  }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: compareGold === null ? '#fff' : theme.inkSoft }}>
+                    {goldStage} (jouw fase)
                   </Text>
-                  {[
-                    { level: 'Uitstekend', max: cfg.green, color: theme.s1 },
-                    { level: 'Goed', max: cfg.yellow, color: theme.s2 },
-                    { level: 'Voorzichtig', max: cfg.orange, color: theme.s3 },
-                    { level: 'Gevaarlijk', max: cfg.red, color: theme.s4 },
-                  ].map((r, i) => (
-                    <View key={r.level} style={{
-                      flexDirection: 'row', alignItems: 'center', paddingVertical: 5, paddingHorizontal: 8,
-                      backgroundColor: i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent',
-                      borderRadius: 6,
+                </TouchableOpacity>
+                {['GOLD 1', 'GOLD 2', 'GOLD 3', 'GOLD 4'].filter(g => g !== goldStage).map(g => (
+                  <TouchableOpacity key={g} onPress={() => setCompareGold(g)}
+                    style={{
+                      paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10,
+                      backgroundColor: compareGold === g ? theme.accent : 'rgba(0,0,0,0.06)',
                     }}>
-                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: r.color, marginRight: 8 }} />
-                      <Text style={{ flex: 1, fontSize: 12, fontWeight: '500', color: theme.ink }}>{r.level}</Text>
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: theme.inkSoft }}>≤ {r.max} µg/m³</Text>
-                    </View>
-                  ))}
-                </View>
-              );
-            })}
-
-            <View style={{ marginBottom: 14, marginTop: 6 }}>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: theme.ink, marginBottom: 6 }}>NOx (Stikstofoxiden — zelfde voor alle fases)</Text>
-              {[
-                { level: 'Uitstekend', max: NOX_THRESHOLDS.green, color: theme.s1 },
-                { level: 'Goed', max: NOX_THRESHOLDS.yellow, color: theme.s2 },
-                { level: 'Voorzichtig', max: NOX_THRESHOLDS.orange, color: theme.s3 },
-                { level: 'Gevaarlijk', max: NOX_THRESHOLDS.red, color: theme.s4 },
-              ].map((r, i) => (
-                <View key={r.level} style={{
-                  flexDirection: 'row', alignItems: 'center', paddingVertical: 5, paddingHorizontal: 8,
-                  backgroundColor: i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent',
-                  borderRadius: 6,
-                }}>
-                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: r.color, marginRight: 8 }} />
-                  <Text style={{ flex: 1, fontSize: 12, fontWeight: '500', color: theme.ink }}>{r.level}</Text>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: theme.inkSoft }}>≤ {r.max} ticks</Text>
-                </View>
-              ))}
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: compareGold === g ? '#fff' : theme.inkSoft }}>
+                      {g}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
 
-            <Text style={{ fontSize: 11, color: theme.inkMuted, lineHeight: 16, marginBottom: 16 }}>
-              De uiteindelijke status is het hoogste niveau van PM2.5 en NOx. Bij een PM2.5 van 14 µg/m³ en NOx van 20000 is de status bijvoorbeeld 'Voorzichtig'.
-            </Text>
+            <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
+              {/* Welk niveau wordt getoond */}
+              {(() => {
+                const viewGold = compareGold || goldCfg;
+                const viewStage = compareGold || goldStage;
+                const isComparing = compareGold !== null;
+                return (
+                  <>
+                    {isComparing && (
+                      <View style={{ backgroundColor: `${theme.accent}12`, borderRadius: 10, padding: 10, marginBottom: 12 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: theme.accent }}>
+                          Je bekijkt nu {compareGold} — jouw eigen {goldStage} waarden worden niet aangepast.
+                        </Text>
+                      </View>
+                    )}
 
-            <TouchableOpacity onPress={() => setThresholdsOpen(false)}
+                    {/* Per sensor tonen */}
+                    {[
+                      { key: 'pm25', label: 'PM2.5', unit: 'µg/m³', thresholds: PM25_THRESHOLDS[viewStage] },
+                      { key: 'pm10', label: 'PM10', unit: 'µg/m³', thresholds: PM10_THRESHOLDS[viewStage] },
+                      { key: 'nox', label: 'NOx', unit: 'ticks', thresholds: NOX_THRESHOLDS[viewStage] },
+                    ].map(sensor => (
+                      <View key={sensor.key} style={{ marginBottom: 14 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: theme.ink, marginBottom: 6 }}>
+                          {sensor.label} ({viewStage})
+                        </Text>
+                        {[
+                          { level: 'Uitstekend', max: sensor.thresholds.green, color: theme.s1 },
+                          { level: 'Goed', max: sensor.thresholds.yellow, color: theme.s2 },
+                          { level: 'Voorzichtig', max: sensor.thresholds.orange, color: theme.s3 },
+                          { level: 'Gevaarlijk', max: sensor.thresholds.red, color: theme.s4 },
+                        ].map((r, i) => (
+                          <View key={r.level} style={{
+                            flexDirection: 'row', alignItems: 'center', paddingVertical: 5, paddingHorizontal: 8,
+                            backgroundColor: i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent',
+                            borderRadius: 6,
+                          }}>
+                            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: r.color, marginRight: 8 }} />
+                            <Text style={{ flex: 1, fontSize: 12, fontWeight: '500', color: theme.ink }}>{r.level}</Text>
+                            <Text style={{ fontSize: 12, fontWeight: '600', color: theme.inkSoft }}>≤ {r.max} {sensor.unit}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    ))}
+
+                    {/* Temperatuur */}
+                    <View key="temp" style={{ marginBottom: 14 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '700', color: theme.ink, marginBottom: 6 }}>
+                        Temperatuur ({viewStage})
+                      </Text>
+                      <Text style={{ fontSize: 11, color: theme.inkMuted, marginBottom: 4 }}>
+                        Kou en warmte zijn beide gevaarlijk voor COPD-patiënten.
+                      </Text>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: theme.inkSoft, marginBottom: 4 }}>Kou:</Text>
+                      {[
+                        { level: 'Uitstekend', range: `≥ ${TEMP_THRESHOLDS[viewStage].cold.green}°C`, color: theme.s1 },
+                        { level: 'Goed', range: `${TEMP_THRESHOLDS[viewStage].cold.yellow}–${TEMP_THRESHOLDS[viewStage].cold.green}°C`, color: theme.s2 },
+                        { level: 'Voorzichtig', range: `${TEMP_THRESHOLDS[viewStage].cold.orange}–${TEMP_THRESHOLDS[viewStage].cold.yellow}°C`, color: theme.s3 },
+                        { level: 'Gevaarlijk', range: `< ${TEMP_THRESHOLDS[viewStage].cold.orange}°C`, color: theme.s4 },
+                      ].map((r, i) => (
+                        <View key={r.level} style={{
+                          flexDirection: 'row', alignItems: 'center', paddingVertical: 5, paddingHorizontal: 8,
+                          backgroundColor: i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent',
+                          borderRadius: 6,
+                        }}>
+                          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: r.color, marginRight: 8 }} />
+                          <Text style={{ flex: 1, fontSize: 12, fontWeight: '500', color: theme.ink }}>{r.level}</Text>
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: theme.inkSoft }}>{r.range}</Text>
+                        </View>
+                      ))}
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: theme.inkSoft, marginTop: 6, marginBottom: 4 }}>Warmte:</Text>
+                      {[
+                        { level: 'Uitstekend', range: `≤ ${TEMP_THRESHOLDS[viewStage].hot.green}°C`, color: theme.s1 },
+                        { level: 'Goed', range: `${TEMP_THRESHOLDS[viewStage].hot.green}–${TEMP_THRESHOLDS[viewStage].hot.yellow}°C`, color: theme.s2 },
+                        { level: 'Voorzichtig', range: `${TEMP_THRESHOLDS[viewStage].hot.yellow}–${TEMP_THRESHOLDS[viewStage].hot.orange}°C`, color: theme.s3 },
+                        { level: 'Gevaarlijk', range: `> ${TEMP_THRESHOLDS[viewStage].hot.orange}°C`, color: theme.s4 },
+                      ].map((r, i) => (
+                        <View key={r.level} style={{
+                          flexDirection: 'row', alignItems: 'center', paddingVertical: 5, paddingHorizontal: 8,
+                          backgroundColor: i % 2 === 0 ? 'rgba(0,0,0,0.03)' : 'transparent',
+                          borderRadius: 6,
+                        }}>
+                          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: r.color, marginRight: 8 }} />
+                          <Text style={{ flex: 1, fontSize: 12, fontWeight: '500', color: theme.ink }}>{r.level}</Text>
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: theme.inkSoft }}>{r.range}</Text>
+                        </View>
+                      ))}
+                    </View>
+
+                    <Text style={{ fontSize: 11, color: theme.inkMuted, lineHeight: 16, marginBottom: 16 }}>
+                      De overall status wordt bepaald door de slechtste van alle 4 sensoren. Als 1 sensor "gevaarlijk" aangeeft, is de totaalstatus "gevaarlijk".
+                    </Text>
+                  </>
+                );
+              })()}
+            </ScrollView>
+
+            <TouchableOpacity onPress={() => { setThresholdsOpen(false); setCompareGold(null); }}
               style={{
                 paddingVertical: 14, borderRadius: 16, backgroundColor: theme.accent, alignItems: 'center',
                 shadowColor: theme.accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 16,
@@ -293,6 +354,8 @@ export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, en
               <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff' }}>Sluiten</Text>
             </TouchableOpacity>
           </View>
+        </TouchableOpacity>
+      </Modal>
         </TouchableOpacity>
       </Modal>
     </View>

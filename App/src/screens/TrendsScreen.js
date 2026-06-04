@@ -4,7 +4,8 @@ import GlassCard from '../components/GlassCard';
 import AmbientBg from '../components/AmbientBg';
 import Icon from '../components/Icon';
 import LineChart from '../components/LineChart';
-import { STATUS_LEVELS, generateTrendData, PM10_THRESHOLDS, NOX_THRESHOLDS } from '../theme';
+import { STATUS_LEVELS, PM10_THRESHOLDS, NOX_THRESHOLDS, calcOverallQuality } from '../theme';
+import { loadHistory, shareCSV } from '../utils/HistoryManager';
 
 const RANGE_POINTS = { day: 60, week: 42, month: 60 };
 
@@ -13,6 +14,7 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
   const statusColor = theme[status.colorKey];
   const [range, setRange] = useState('week');
   const [tick, setTick] = useState(0);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const historyRef = useRef(null);
   const lastPushRef = useRef(0);
   const sdRef = useRef(sensorData || {});
@@ -20,12 +22,27 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
   // Keep sdRef in sync with latest sensorData
   sdRef.current = sensorData || {};
 
+  // Laad opgeslagen geschiedenis bij openen Trends tab
+  useEffect(() => {
+    if (historyLoaded) return;
+    (async () => {
+      const days = range === 'day' ? 1 : range === 'week' ? 7 : 30;
+      const saved = await loadHistory(days);
+      if (saved.length > 0) {
+        historyRef.current = saved;
+      }
+      setHistoryLoaded(true);
+      setTick(t => t + 1);
+    })();
+  }, [range, historyLoaded]);
+
   // Seed history with initial points so chart is not empty
   useEffect(() => {
     if (!sensorData) return;
-    // Initialize with first real data point
     if (historyRef.current === null) {
       historyRef.current = [];
+    }
+    if (historyLoaded && historyRef.current.length === 0) {
       const now = new Date();
       const h = String(now.getHours()).padStart(2, '0');
       const m = String(now.getMinutes()).padStart(2, '0');
@@ -35,10 +52,11 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
         temp: sensorData.temp ?? 0,
         nox: sensorData.nox ?? 0,
         label: h + ':' + m,
+        ts: Date.now(),
       });
       setTick(t => t + 1);
     }
-  }, [sensorData]);
+  }, [sensorData, historyLoaded]);
 
   // Collect a data point every 5 seconds for realtime updates
   useEffect(() => {
@@ -54,6 +72,7 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
         temp: s.temp ?? 0,
         nox: s.nox ?? 0,
         label: h + ':' + m,
+        ts: now.getTime(),
       });
       const max = RANGE_POINTS[range] || 7;
       if (historyRef.current.length > max) {
@@ -64,46 +83,18 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
     return () => clearInterval(interval);
   }, [range]);
 
-  // Calculate combined status matching the Pico's logic (GOLD + NOx max)
-  const GOLD_THRESHOLDS = {
-    'GOLD 1': { green: 5, yellow: 10, orange: 20, red: 25 },
-    'GOLD 2': { green: 4, yellow: 8, orange: 16, red: 20 },
-    'GOLD 3': { green: 3, yellow: 6, orange: 12, red: 16 },
-    'GOLD 4': { green: 2, yellow: 5, orange: 10, red: 14 },
-  };
-
-  function calcPmLevel(v, g) {
-    const t = GOLD_THRESHOLDS[g] || GOLD_THRESHOLDS['GOLD 3'];
-    if (v >= t.red) return 5;
-    if (v >= t.orange) return 4;
-    if (v >= t.yellow) return 3;
-    if (v >= t.green) return 2;
-    return 1;
-  }
-
-  function calcNoxLevel(nox, g) {
-    const t = NOX_THRESHOLDS[g] || NOX_THRESHOLDS['GOLD 3'];
-    if (nox >= t.red) return 5;
-    if (nox >= t.orange) return 4;
-    if (nox >= t.yellow) return 3;
-    if (nox >= t.green) return 2;
-    return 1;
-  }
-
-  function calcCombined(v_pm25, v_nox) {
-    const pm = calcPmLevel(v_pm25, goldStage);
-    const nx = calcNoxLevel(v_nox, goldStage);
-    return { level: Math.max(pm, nx), pm, nx };
+  // Bereken overall kwaliteit op basis van ALLE 4 sensoren
+  function calcCombined(v_pm25, v_pm10, v_temp, v_nox) {
+    return calcOverallQuality(v_pm25, v_pm10, v_temp, v_nox, goldStage);
   }
 
   const hist = historyRef.current || [];
-  // Combined status: map to 1-5 level matching Pico's calc_combined_status
   const mainData = hist.map((p, i) => {
-    const combined = calcCombined(p.pm25, p.nox);
+    const level = calcCombined(p.pm25, p.pm10, p.temp, p.nox);
     return {
       x: i,
-      v: combined.level,
-      level: combined.level,
+      v: level,
+      level: level,
       label: p.label,
     };
   });
@@ -142,26 +133,36 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
           </Text>
         </View>
 
-        <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12 }}>
-          {rangeOpts.map(opt => (
-            <TouchableOpacity key={opt.value} onPress={() => setRange(opt.value)}
-              style={{
-                paddingVertical: 7, paddingHorizontal: 14, borderRadius: 8,
-                backgroundColor: range === opt.value ? '#fff' : 'rgba(120,120,128,0.14)',
-                shadowColor: range === opt.value ? '#000' : 'transparent',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.08,
-                shadowRadius: 3,
-                elevation: range === opt.value ? 2 : 0,
-              }}>
-              <Text style={{
-                fontSize: 13, fontWeight: '600',
-                color: range === opt.value ? theme.ink : theme.inkSoft,
-              }}>
-                {opt.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+          <View style={{ flexDirection: 'row', gap: 6, flex: 1 }}>
+            {rangeOpts.map(opt => (
+              <TouchableOpacity key={opt.value} onPress={() => setRange(opt.value)}
+                style={{
+                  paddingVertical: 7, paddingHorizontal: 14, borderRadius: 8,
+                  backgroundColor: range === opt.value ? '#fff' : 'rgba(120,120,128,0.14)',
+                  shadowColor: range === opt.value ? '#000' : 'transparent',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.08,
+                  shadowRadius: 3,
+                  elevation: range === opt.value ? 2 : 0,
+                }}>
+                <Text style={{
+                  fontSize: 13, fontWeight: '600',
+                  color: range === opt.value ? theme.ink : theme.inkSoft,
+                }}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TouchableOpacity
+            onPress={() => shareCSV(hist)}
+            style={{
+              paddingVertical: 7, paddingHorizontal: 12, borderRadius: 8,
+              backgroundColor: theme.accent + '18',
+            }}>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: theme.accent }}>CSV</Text>
+          </TouchableOpacity>
         </View>
 
         <GlassCard theme={theme} radius={22} style={{ padding: 14, marginBottom: 12 }}>

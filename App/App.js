@@ -1,44 +1,21 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, AppRegistry, StatusBar, SafeAreaView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { THEMES, pm25ToStatusLvl, NOX_THRESHOLDS } from './src/theme';
+import { THEMES, pm25ToStatusLvl, NOX_THRESHOLDS, calcOverallQuality } from './src/theme';
 import TabBar from './src/components/TabBar';
 import ConnectScreen from './src/screens/ConnectScreen';
 import OverviewScreen from './src/screens/OverviewScreen';
 import TrendsScreen from './src/screens/TrendsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import * as BLE from './src/ble/BLEManager';
+import { saveDataPoint, loadHistory, cleanupOldHistory } from './src/utils/HistoryManager';
 
-const GOLD_THRESHOLDS = {
-  'GOLD 1': { green: 5, yellow: 10, orange: 20, red: 25 },
-  'GOLD 2': { green: 4, yellow: 8, orange: 16, red: 20 },
-  'GOLD 3': { green: 3, yellow: 6, orange: 12, red: 16 },
-  'GOLD 4': { green: 2, yellow: 5, orange: 10, red: 14 },
-};
-
-function calcNoxLevel(nox, goldStage) {
-  const t = NOX_THRESHOLDS[goldStage] || NOX_THRESHOLDS['GOLD 3'];
-  if (nox >= t.red) return 5;
-  if (nox >= t.orange) return 4;
-  if (nox >= t.yellow) return 3;
-  if (nox >= t.green) return 2;
-  return 1;
-}
-
-function calcStatusLevel(pm25, goldStage) {
-  const t = GOLD_THRESHOLDS[goldStage] || GOLD_THRESHOLDS['GOLD 3'];
-  if (pm25 >= t.red) return 5;
-  if (pm25 >= t.orange) return 4;
-  if (pm25 >= t.yellow) return 3;
-  if (pm25 >= t.green) return 2;
-  return 1;
-}
-
+// Bereken overall status op basis van ALLE 4 sensoren (max niveau)
+// 0=wachten, 1=uitstekend, 2=goed, 3=voorzichtig, 4=gevaarlijk
 function calcCombinedStatus(sd, goldStage) {
-  if (!sd || (sd.pm25 == null && sd.nox == null && sd.pm10 == null)) return 0; // geen data
-  const pmLevel = calcStatusLevel(sd.pm25 ?? 0, goldStage);
-  const noxLevel = calcNoxLevel(sd.nox ?? 0, goldStage);
-  return Math.max(pmLevel, noxLevel);
+  if (!sd || (sd.pm25 == null && sd.pm10 == null && sd.temp == null && sd.nox == null)) return 0;
+  const lvl = calcOverallQuality(sd.pm25, sd.pm10, sd.temp, sd.nox, goldStage);
+  return lvl;
 }
 
 const STORAGE_KEY = '@profile';
@@ -132,7 +109,20 @@ const App = () => {
     return () => clearInterval(interval);
   }, [demoMode]);
 
-  // Laad opgeslagen profiel bij startup
+  // Sla sensordata op elke 30 seconden op in AsyncStorage
+  useEffect(() => {
+    if (!sensorData || !connected) return;
+    const saveInterval = setInterval(() => {
+      saveDataPoint(sensorData);
+    }, 30 * 1000); // elke 30 seconden
+
+    // Sla ook meteen op als eerste punt
+    saveDataPoint(sensorData);
+
+    return () => clearInterval(saveInterval);
+  }, [connected, sensorData]);
+
+  // Laad opgeslagen profiel bij startup + ruim oude geschiedenis op
   useEffect(() => {
     (async () => {
       try {
@@ -147,6 +137,7 @@ const App = () => {
           if (p.patientAge) setPatientAge(p.patientAge);
         }
       } catch (_) {}
+      cleanupOldHistory(); // ruim data ouder dan 30 dagen op
       setProfileLoaded(true);
     })();
   }, []);
