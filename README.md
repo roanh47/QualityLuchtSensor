@@ -1,6 +1,16 @@
 # QualityLuchtSensor™
 ## NSE Leerteam 4
 ### Roan | Merijn | Thijs | Rick | Mylan
+### Rollen
+| Sprint | Product Owner(’s) | Scrum master(’s) |
+| --- | --- | --- |
+| 1 | Thijs | Roan |
+| 2 | Rick | Thijs, Merijn |
+| 3 | Mylan, Roan | Rick |
+| 4 | Merijn | Mylan |
+| 5 | Thijs | Roan |
+| 6 | Rick | Thijs, Merijn |
+| 7 | Mylan, Roan | Rick |
 
 # Uitleg
 ## Verbinding maken
