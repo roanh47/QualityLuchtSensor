@@ -1,3 +1,4 @@
+import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -24,11 +25,15 @@ export async function shareCSV(points) {
   const csv = pointsToCSV(points);
   const now = new Date();
   const fileName = `QualityLuchtSensor_${now.toISOString().slice(0, 10)}.csv`;
-  const filePath = FileSystem.documentDirectory + fileName;
+  const filePath = FileSystem.cacheDirectory + fileName;
 
   try {
     await FileSystem.writeAsStringAsync(filePath, csv, { encoding: FileSystem.EncodingType.UTF8 });
-    await Sharing.shareAsync(filePath, { mimeType: 'text/csv', dialogTitle: 'Deel meetgegevens' });
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(filePath, { mimeType: 'text/csv', dialogTitle: 'Deel meetgegevens' });
+    } else {
+      Alert.alert('Exporteren', 'Bestand opgeslagen in cache: ' + fileName);
+    }
   } catch (_) {
     // stil falen
   }
