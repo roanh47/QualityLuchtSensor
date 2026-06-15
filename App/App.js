@@ -120,20 +120,41 @@ const App = () => {
     setConnected(false);
   }, []);
 
-  // Demo mode: genereer realistische sensorwaarden
+  // Demo mode: genereer historische en realtime data
   useEffect(() => {
     if (!demoMode) return;
-    // Start meteen met demo data
+    // Genereer 48 uur aan demo data (elke 30 min een punt = 96 punten)
+    const now = Date.now();
+    for (let i = 95; i >= 0; i--) {
+      const ts = now - i * 1800000;
+      const key = '@history_' + new Date(ts).toISOString().slice(0, 10);
+      try {
+        AsyncStorage.getItem(key).then(existing => {
+          const pts = existing ? JSON.parse(existing) : [];
+          pts.push({
+            pm25: Math.max(0.1, Math.random() * 8),
+            pm10: Math.max(0.5, Math.random() * 15),
+            temp: Math.max(-5, 15 + (Math.random() - 0.5) * 6),
+            nox: Math.max(5000, 10000 + (Math.random() - 0.48) * 4000),
+            label: new Date(ts).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }),
+            ts,
+          });
+          AsyncStorage.setItem(key, JSON.stringify(pts));
+        });
+      } catch (_) {}
+    }
     const base = { pm25: 4.2, pm10: 8.5, temp: 18.3, nox: 12000 };
     setSensorData({ ...base });
     const interval = setInterval(() => {
-      setSensorData(prev => ({
-        pm25: Math.max(0.1, (prev?.pm25 ?? base.pm25) + (Math.random() - 0.48) * 0.8),
-        pm10: Math.max(0.5, (prev?.pm10 ?? base.pm10) + (Math.random() - 0.48) * 1.2),
-        temp: Math.max(-10, (prev?.temp ?? base.temp) + (Math.random() - 0.5) * 0.3),
-        nox: Math.max(5000, (prev?.nox ?? base.nox) + (Math.random() - 0.48) * 800),
-      }));
-    }, 3000);
+      const next = {
+        pm25: Math.max(0.1, Math.random() * 8),
+        pm10: Math.max(0.5, Math.random() * 15),
+        temp: Math.max(-5, 15 + (Math.random() - 0.5) * 6),
+        nox: Math.max(5000, 10000 + (Math.random() - 0.48) * 4000),
+      };
+      setSensorData(next);
+      saveDataPoint(next);
+    }, 10000);
     return () => clearInterval(interval);
   }, [demoMode]);
 
