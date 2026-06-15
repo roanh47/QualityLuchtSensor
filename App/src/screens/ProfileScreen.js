@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, Alert } from 'react-native';
 import GlassCard from '../components/GlassCard';
 import Toggle from '../components/Toggle';
 import AmbientBg from '../components/AmbientBg';
 import Icon from '../components/Icon';
 import { STATUS_LEVELS, SYMPTOMS, THEMES } from '../theme';
+import { loadHistory, shareCSV } from '../utils/HistoryManager';
 
 export default function ProfileScreen({
   theme, statusLvl, proMode, demoMode, setProMode,
@@ -13,12 +14,17 @@ export default function ProfileScreen({
   goldStage, setGoldStage,
   onDisconnect,
   patientName, setPatientName, patientAge, setPatientAge,
+  validationEnabled, setValidationEnabled,
+  writeInterval, setWriteInterval,
 }) {
   const status = STATUS_LEVELS.find(s => s.key === statusLvl) || STATUS_LEVELS[1];
   const statusColor = theme[status.colorKey];
   const [deviceOpen, setDeviceOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [showGoldPicker, setShowGoldPicker] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportDays, setExportDays] = useState(7);
+  const [exporting, setExporting] = useState(false);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -262,6 +268,73 @@ export default function ProfileScreen({
           </GlassCard>
         </TouchableOpacity>
 
+        <GlassCard theme={theme} radius={22} style={{ padding: 14, marginBottom: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{
+              width: 38, height: 38, borderRadius: 11,
+              backgroundColor: `${theme.accent}18`,
+              alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Icon name="settings" size={20} color={theme.accent} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: theme.ink }}>Validatie</Text>
+              <Text style={{ fontSize: 11.5, color: theme.inkSoft, marginTop: 2, lineHeight: 16 }}>
+                Waarschuwen bij onrealistische sensorwaarden
+              </Text>
+            </View>
+            <Toggle on={validationEnabled} onChange={setValidationEnabled} theme={theme} />
+          </View>
+        </GlassCard>
+
+        <GlassCard theme={theme} radius={22} style={{ padding: 14, marginBottom: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{
+              width: 38, height: 38, borderRadius: 11,
+              backgroundColor: `${theme.accent}18`,
+              alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Icon name="refresh" size={20} color={theme.accent} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: theme.ink }}>Opslag interval</Text>
+              <Text style={{ fontSize: 11.5, color: theme.inkSoft, marginTop: 2, lineHeight: 16 }}>
+                Elke {writeInterval} seconden
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => setWriteInterval(Math.max(1, writeInterval - 5))}
+              style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.06)', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: theme.ink }}>-</Text>
+            </TouchableOpacity>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: theme.ink, width: 30, textAlign: 'center' }}>
+              {writeInterval}
+            </Text>
+            <TouchableOpacity onPress={() => setWriteInterval(Math.min(300, writeInterval + 5))}
+              style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.06)', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: theme.ink }}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </GlassCard>
+
+        <GlassCard theme={theme} radius={22} style={{ padding: 14, marginBottom: 12 }}>
+          <TouchableOpacity onPress={() => setExportOpen(true)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{
+              width: 38, height: 38, borderRadius: 11,
+              backgroundColor: `${theme.s1}18`,
+              alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Icon name="chart" size={20} color={theme.s1} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: theme.ink }}>Export CSV</Text>
+              <Text style={{ fontSize: 11.5, color: theme.inkSoft, marginTop: 2, lineHeight: 16 }}>
+                Meetgegevens exporteren naar Excel
+              </Text>
+            </View>
+            <Icon name="chevron-right" size={16} color={theme.inkMuted} />
+          </TouchableOpacity>
+        </GlassCard>
+
         <TouchableOpacity
           onPress={onDisconnect}
           style={{
@@ -383,6 +456,66 @@ export default function ProfileScreen({
               </TouchableOpacity>
             ))}
           </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal visible={exportOpen} transparent animationType="slide">
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }}
+          activeOpacity={1}
+          onPress={() => setExportOpen(false)}
+        >
+          <TouchableOpacity activeOpacity={1} onPress={() => {}} style={{
+            backgroundColor: 'rgba(255,255,255,0.9)',
+            borderTopLeftRadius: 32, borderTopRightRadius: 32,
+            padding: 18, paddingBottom: 40,
+          }}>
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(0,0,0,0.18)', alignSelf: 'center', marginBottom: 18 }} />
+            <Text style={{ fontSize: 20, fontWeight: '700', color: theme.ink, letterSpacing: -0.3, marginBottom: 16 }}>
+              Exporteer meetgegevens
+            </Text>
+            <Text style={{ fontSize: 13, color: theme.inkSoft, marginBottom: 16, lineHeight: 18 }}>
+              Kies hoeveel dagen terug je wilt exporteren. Het bestand opent in Excel of een andere app.
+            </Text>
+
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20 }}>
+              {[1, 3, 7, 14, 30].map(d => (
+                <TouchableOpacity key={d} onPress={() => setExportDays(d)}
+                  style={{
+                    flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center',
+                    backgroundColor: exportDays === d ? theme.accent : 'rgba(0,0,0,0.05)',
+                  }}>
+                  <Text style={{
+                    fontSize: 13, fontWeight: '600',
+                    color: exportDays === d ? '#fff' : theme.ink,
+                  }}>{d}d</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity onPress={async () => {
+              setExporting(true);
+              try {
+                const pts = await loadHistory(exportDays);
+                if (pts.length === 0) {
+                  Alert.alert('Geen data', 'Er zijn geen meetgegevens in deze periode.');
+                  setExporting(false);
+                  return;
+                }
+                await shareCSV(pts);
+              } catch (e) {
+                Alert.alert('Fout', 'Kon niet exporteren.');
+              }
+              setExporting(false);
+            }} style={{
+              paddingVertical: 14, borderRadius: 16, backgroundColor: exporting ? 'rgba(0,0,0,0.2)' : theme.s1,
+              alignItems: 'center',
+            }}>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff' }}>
+                {exporting ? 'Bezig...' : 'Export CSV'}
+              </Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
     </View>

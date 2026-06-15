@@ -8,7 +8,7 @@ import OverviewScreen from './src/screens/OverviewScreen';
 import TrendsScreen from './src/screens/TrendsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import * as BLE from './src/ble/BLEManager';
-import { saveDataPoint, loadHistory, cleanupOldHistory } from './src/utils/HistoryManager';
+import { saveDataPoint, loadHistory, cleanupOldHistory, shareCSV, pointsToCSV } from './src/utils/HistoryManager';
 
 // Bereken overall status op basis van ALLE 4 sensoren (max niveau)
 // 0=wachten, 1=uitstekend, 2=goed, 3=voorzichtig, 4=gevaarlijk
@@ -19,6 +19,26 @@ function calcCombinedStatus(sd, goldStage) {
 }
 
 const STORAGE_KEY = '@profile';
+
+const VALIDATION_RANGES = {
+  pm25: { min: 0, max: 200 },
+  pm10: { min: 0, max: 400 },
+  temp: { min: -10, max: 50 },
+  nox:  { min: 0, max: 200000 },
+};
+
+function validateReading(data) {
+  const issues = [];
+  if (data.pm25 != null && (data.pm25 < VALIDATION_RANGES.pm25.min || data.pm25 > VALIDATION_RANGES.pm25.max))
+    issues.push(`PM2.5 (${data.pm25.toFixed(1)}) buiten bereik — normaal 0-200 µg/m³`);
+  if (data.pm10 != null && (data.pm10 < VALIDATION_RANGES.pm10.min || data.pm10 > VALIDATION_RANGES.pm10.max))
+    issues.push(`PM10 (${data.pm10.toFixed(1)}) buiten bereik — normaal 0-400 µg/m³`);
+  if (data.temp != null && (data.temp < VALIDATION_RANGES.temp.min || data.temp > VALIDATION_RANGES.temp.max))
+    issues.push(`Temperatuur (${data.temp.toFixed(1)}) buiten bereik — normaal -10 tot 50 °C`);
+  if (data.nox != null && (data.nox < VALIDATION_RANGES.nox.min || data.nox > VALIDATION_RANGES.nox.max))
+    issues.push(`NOx (${data.nox.toFixed(0)}) buiten bereik — normaal 0-200.000 ticks`);
+  return issues;
+}
 
 const App = () => {
   const [connected, setConnected] = useState(false);
@@ -33,6 +53,8 @@ const App = () => {
   });
   const [patientName, setPatientName] = useState('Patient');
   const [patientAge, setPatientAge] = useState('68');
+  const [validationEnabled, setValidationEnabled] = useState(true);
+  const [writeInterval, setWriteInterval] = useState(10);
   const [sensorData, setSensorData] = useState(null);
   const [selectedSymptoms, setSelectedSymptoms] = useState([]);
   const [symptomIntensity, setSymptomIntensity] = useState(2);
@@ -62,6 +84,12 @@ const App = () => {
   }, [sensorData, goldStage]);
 
   const handleSensorData = useCallback((data) => {
+    if (validationEnabled) {
+      const issues = validateReading(data);
+      if (issues.length > 0) {
+        console.warn('Sensor validatie:', issues.join('; '));
+      }
+    }
     setSensorData(prev => {
       const valid = (v) => v != null && !isNaN(v);
       return {
@@ -71,7 +99,7 @@ const App = () => {
         nox: valid(data.nox)  ? data.nox  : (valid(prev?.nox)  ? prev.nox  : null),
       };
     });
-  }, []);
+  }, [validationEnabled]);
 
   const handleConnected = useCallback((demo) => {
     if (demo) {
@@ -109,18 +137,18 @@ const App = () => {
     return () => clearInterval(interval);
   }, [demoMode]);
 
-  // Sla sensordata op elke 30 seconden op in AsyncStorage
+  // Sla sensordata op elke N seconden op in AsyncStorage
   useEffect(() => {
     if (!sensorData || !connected) return;
+    const ms = Math.max(1000, (writeInterval || 10) * 1000);
     const saveInterval = setInterval(() => {
       saveDataPoint(sensorData);
-    }, 30 * 1000); // elke 30 seconden
+    }, ms);
 
-    // Sla ook meteen op als eerste punt
     saveDataPoint(sensorData);
 
     return () => clearInterval(saveInterval);
-  }, [connected, sensorData]);
+  }, [connected, sensorData, writeInterval]);
 
   // Laad opgeslagen profiel bij startup + ruim oude geschiedenis op
   useEffect(() => {
@@ -135,6 +163,8 @@ const App = () => {
           if (p.enabledMetrics) setEnabledMetrics(p.enabledMetrics);
           if (p.patientName) setPatientName(p.patientName);
           if (p.patientAge) setPatientAge(p.patientAge);
+          if (p.validationEnabled != null) setValidationEnabled(p.validationEnabled);
+          if (p.writeInterval) setWriteInterval(p.writeInterval);
         }
       } catch (_) {}
       cleanupOldHistory(); // ruim data ouder dan 30 dagen op
@@ -147,8 +177,9 @@ const App = () => {
     if (!profileLoaded) return;
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({
       themeKey, proMode, goldStage, enabledMetrics, patientName, patientAge,
+      validationEnabled, writeInterval,
     })).catch(() => {});
-  }, [themeKey, proMode, goldStage, enabledMetrics, patientName, patientAge, profileLoaded]);
+  }, [themeKey, proMode, goldStage, enabledMetrics, patientName, patientAge, profileLoaded, validationEnabled, writeInterval]);
 
   if (!connected) {
     return (
@@ -210,6 +241,10 @@ const App = () => {
             setPatientName={setPatientName}
             patientAge={patientAge}
             setPatientAge={setPatientAge}
+            validationEnabled={validationEnabled}
+            setValidationEnabled={setValidationEnabled}
+            writeInterval={writeInterval}
+            setWriteInterval={setWriteInterval}
           />
         )}
         <TabBar tab={tab} setTab={setTab} theme={theme} />
