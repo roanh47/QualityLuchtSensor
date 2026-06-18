@@ -222,9 +222,9 @@ export default function TrendsScreen({ theme, statusLvl, enabledMetrics, proMode
                 <LineChart data={hist.map((p, i) => {
                   let val = 0;
                   if (c.k === 'pm25') val = p.pm25 || 0;
-                  else if (c.k === 'no2') val = (p.pm10 || 0) * 0.5;
+                  else if (c.k === 'pm10') val = p.pm10 || 0;
                   else if (c.k === 'temp') val = p.temp || 0;
-                  else if (c.k === 'gas') val = p.nox || 0;
+                  else if (c.k === 'nox') val = p.nox || 0;
                   return { x: i, v: val, label: p.label };
                 })} color={c.color} height={110} theme={theme} />
               </GlassCard>

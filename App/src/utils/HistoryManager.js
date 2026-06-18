@@ -25,18 +25,38 @@ export async function shareCSV(points) {
   const csv = pointsToCSV(points);
   const now = new Date();
   const fileName = `QualityLuchtSensor_${now.toISOString().slice(0, 10)}.csv`;
-  const filePath = FileSystem.cacheDirectory + fileName;
+  const cacheDir = FileSystem.cacheDirectory || '';
+  const filePath = cacheDir + fileName;
 
   try {
+    // Zorg dat de cache-map bestaat
+    const dirInfo = await FileSystem.getInfoAsync(cacheDir);
+    if (!dirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(cacheDir, { intermediates: true });
+    }
+
     await FileSystem.writeAsStringAsync(filePath, csv, { encoding: FileSystem.EncodingType.UTF8 });
-    if (await Sharing.isAvailableAsync()) {
-      const uri = await FileSystem.getContentUriAsync(filePath);
-      await Sharing.shareAsync(uri, { mimeType: 'text/csv', dialogTitle: 'Deel meetgegevens' });
-    } else {
-      Alert.alert('Exporteren', 'Bestand opgeslagen als: ' + fileName);
+
+    if (!(await Sharing.isAvailableAsync())) {
+      Alert.alert('Exporteren', 'Delen wordt niet ondersteund op dit apparaat.');
+      return;
+    }
+
+    // Deel het bestand. Probeer eerst het file:// URI direct; op sommige Android-versies
+    // werkt dit beter dan een content-URI, op andere juist niet. Vang beide af.
+    try {
+      await Sharing.shareAsync(filePath, { mimeType: 'text/csv', dialogTitle: 'Deel meetgegevens' });
+    } catch (directErr) {
+      // Fallback naar content-URI als direct delen faalt
+      try {
+        const contentUri = await FileSystem.getContentUriAsync(filePath);
+        await Sharing.shareAsync(contentUri, { mimeType: 'text/csv', dialogTitle: 'Deel meetgegevens' });
+      } catch (contentErr) {
+        throw new Error(`Direct: ${directErr?.message || directErr}; Content URI: ${contentErr?.message || contentErr}`);
+      }
     }
   } catch (e) {
-    Alert.alert('Export mislukt', 'Probeer het opnieuw.');
+    Alert.alert('Export mislukt', e?.message || 'Probeer het opnieuw.');
   }
 }
 

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text } from 'react-native';
+import Svg, { Path, Circle, Line, Text as SvgText } from 'react-native-svg';
 
 export default function LineChart({ data, color, height = 140, theme, showValue = true }) {
   const [containerWidth, setContainerWidth] = useState(0);
@@ -10,17 +11,36 @@ export default function LineChart({ data, color, height = 140, theme, showValue 
   const vs = pts.map(d => d.v);
   const mn = Math.min(...vs);
   const mx = Math.max(...vs);
-  const range = mx - mn || 1;
+  // Add a tiny pad so min/max points don't sit exactly on the edge
+  const rangeRaw = mx - mn || 1;
+  const padY = rangeRaw === 0 ? 1 : rangeRaw * 0.05;
+  const minY = mn - padY;
+  const maxY = mx + padY;
+  const range = maxY - minY || 1;
 
-  const padL = 12, padR = 12, padT = 16, padB = 24;
+  const padL = 12;
+  const padR = 12;
+  const padT = 18;
+  const padB = 28;
   const chartH = height - padT - padB;
   const chartW = chartWidth - padL - padR;
 
-  const mappedPts = pts.map((d, i) => {
-    const x = padL + (pts.length > 1 ? (i / (pts.length - 1)) * chartW : chartW / 2);
-    const y = padT + (1 - (d.v - mn) / range) * chartH;
-    return { x: Math.max(padL, Math.min(chartWidth - padR, x)), y: Math.max(padT, Math.min(height - padB, y)), ...d };
-  });
+  const mappedPts = useMemo(() => {
+    return pts.map((d, i) => {
+      const x = padL + (pts.length > 1 ? (i / (pts.length - 1)) * chartW : chartW / 2);
+      const y = padT + (1 - (d.v - minY) / range) * chartH;
+      return {
+        x: Math.max(padL, Math.min(chartWidth - padR, x)),
+        y: Math.max(padT, Math.min(height - padB, y)),
+        v: d.v,
+        label: d.label,
+      };
+    });
+  }, [pts, chartW, chartH, minY, range, chartWidth, height]);
+
+  const pathD = mappedPts
+    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`)
+    .join(' ');
 
   const lastPt = mappedPts[mappedPts.length - 1];
   const currentVal = lastPt ? lastPt.v : null;
@@ -37,60 +57,73 @@ export default function LineChart({ data, color, height = 140, theme, showValue 
 
   return (
     <View style={{ width: '100%', height, overflow: 'hidden' }} onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}>
-      <View style={{ width: chartWidth, height: height - padB }}>
-        {[0, 0.25, 0.5, 0.75, 1].map((frac, i) => (
-          <View key={i} style={{
-            position: 'absolute', left: padL, right: padR,
-            top: padT + chartH * frac, height: 1,
-            backgroundColor: theme.inkMuted + '22',
-          }} />
-        ))}
-
-        {mappedPts.slice(1).map((p, i) => {
-          const dx = p.x - mappedPts[i].x;
-          const dy = p.y - mappedPts[i].y;
-          const len = Math.sqrt(dx * dx + dy * dy);
-          if (len < 1) return null;
+      <Svg width={chartWidth} height={height}>
+        {[0, 0.25, 0.5, 0.75, 1].map((frac, i) => {
+          const y = padT + chartH * frac;
           return (
-            <View key={'s' + i} style={{
-              position: 'absolute', left: mappedPts[i].x, top: mappedPts[i].y,
-              width: len, height: 2.5,
-              backgroundColor: color,
-              transform: [{ rotate: `${Math.atan2(dy, dx) * 180 / Math.PI}deg` }],
-              transformOrigin: 'left center',
-            }} />
+            <Line
+              key={`g${i}`}
+              x1={padL}
+              y1={y}
+              x2={chartWidth - padR}
+              y2={y}
+              stroke={theme.inkMuted}
+              strokeOpacity={0.13}
+              strokeWidth={1}
+            />
           );
         })}
 
-        {mappedPts.map((p, i) => (
-          <View key={'p' + i} style={{
-            position: 'absolute',
-            left: p.x - (i === mappedPts.length - 1 ? 6 : 4),
-            top: p.y - (i === mappedPts.length - 1 ? 6 : 4),
-            width: i === mappedPts.length - 1 ? 12 : 8,
-            height: i === mappedPts.length - 1 ? 12 : 8,
-            borderRadius: i === mappedPts.length - 1 ? 6 : 4,
-            backgroundColor: i === mappedPts.length - 1 ? '#fff' : color,
-            borderWidth: 2, borderColor: color,
-          }} />
-        ))}
-      </View>
+        <Path
+          d={pathD}
+          fill="none"
+          stroke={color}
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
 
-      <View style={{ width: chartWidth, height: padB, position: 'relative' }}>
-        {labelIndices.map((idx, li) => (
-          <Text key={'l' + li} style={{
-            position: 'absolute', top: 2,
-            left: Math.max(0, Math.min(chartWidth - 32, mappedPts[idx].x - 16)),
-            width: 32, fontSize: 9, color: theme.inkMuted, textAlign: 'center',
-          }}>
-            {mappedPts[idx].label || ''}
-          </Text>
-        ))}
-      </View>
+        {mappedPts.map((p, i) => {
+          const isLast = i === mappedPts.length - 1;
+          return (
+            <Circle
+              key={`p${i}`}
+              cx={p.x}
+              cy={p.y}
+              r={isLast ? 5 : 3}
+              fill={isLast ? '#fff' : color}
+              stroke={color}
+              strokeWidth={2}
+            />
+          );
+        })}
+
+        {labelIndices.map((idx, li) => {
+          const p = mappedPts[idx];
+          const label = p.label || '';
+          const textWidth = Math.min(46, chartW / labelIndices.length);
+          let x = p.x;
+          if (idx === 0) x = Math.min(p.x + 4, chartWidth - padR - textWidth / 2);
+          else if (idx === pts.length - 1) x = Math.max(p.x - 4, padL + textWidth / 2);
+          return (
+            <SvgText
+              key={`l${li}`}
+              x={x}
+              y={height - 8}
+              fontSize={9}
+              fill={theme.inkMuted}
+              textAnchor="middle"
+              fontWeight="500"
+            >
+              {label}
+            </SvgText>
+          );
+        })}
+      </Svg>
 
       {showValue && currentVal != null && (
         <View style={{
-          position: 'absolute', right: 16, top: 8,
+          position: 'absolute', right: 16, top: 6,
           backgroundColor: color + '22',
           paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
         }}>

@@ -1,6 +1,6 @@
 {
   "name": "qualityluchtsensor",
-  "version": "1.0.11",
+  "version": "1.0.14",
   "main": "App.js",
   "scripts": {
     "start": "expo start",
