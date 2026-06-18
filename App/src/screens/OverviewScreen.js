@@ -8,7 +8,7 @@ import AmbientBg from '../components/AmbientBg';
 import Icon from '../components/Icon';
 import { STATUS_LEVELS, SYMPTOMS, getTempHint, PM25_THRESHOLDS, PM10_THRESHOLDS, NOX_THRESHOLDS, TEMP_THRESHOLDS, ALL_THRESHOLDS, calcSensorLevel } from '../theme';
 
-export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, enabledMetrics, sensorData, onDisconnect, timeStr, goldStage, selectedSymptoms, setSelectedSymptoms, symptomIntensity, setSymptomIntensity, patientName }) {
+export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, enabledMetrics, sensorData, onDisconnect, timeStr, goldStage, selectedSymptoms, setSelectedSymptoms, symptomIntensity, setSymptomIntensity, patientName, validationIssues = [] }) {
   const status = STATUS_LEVELS.find(s => s.key === statusLvl) || STATUS_LEVELS[1];
   const statusColor = theme[status.colorKey];
   const [symptomOpen, setSymptomOpen] = useState(false);
@@ -56,6 +56,38 @@ export default function OverviewScreen({ theme, statusLvl, proMode, demoMode, en
         </View>
 
         <StatusHero statusLvl={statusLvl} theme={theme} proMode={proMode} timeStr={timeStr} />
+
+        {validationIssues.length > 0 && (
+          <View style={{
+            marginTop: 12,
+            backgroundColor: theme.s4 + '18',
+            borderWidth: 1,
+            borderColor: theme.s4 + '40',
+            borderRadius: 16,
+            padding: 12,
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+            gap: 10,
+          }}>
+            <View style={{
+              width: 28, height: 28, borderRadius: 14,
+              backgroundColor: theme.s4 + '22',
+              alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Icon name="alert" size={16} color={theme.s4} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: theme.s4, marginBottom: 2 }}>
+                Onrealistische sensorwaarde gedetecteerd
+              </Text>
+              {validationIssues.map((issue, i) => (
+                <Text key={i} style={{ fontSize: 12, color: theme.ink, lineHeight: 17 }}>
+                  • {issue}
+                </Text>
+              ))}
+            </View>
+          </View>
+        )}
 
         {!proMode ? (
           <GlassCard theme={theme} radius={22} style={{ padding: 16, marginTop: 12 }}>

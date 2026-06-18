@@ -54,6 +54,7 @@ const App = () => {
   const [patientName, setPatientName] = useState('Patient');
   const [patientAge, setPatientAge] = useState('68');
   const [validationEnabled, setValidationEnabled] = useState(true);
+  const [validationIssues, setValidationIssues] = useState([]);
   const [writeInterval, setWriteInterval] = useState(10);
   const [sensorData, setSensorData] = useState(null);
   const [selectedSymptoms, setSelectedSymptoms] = useState([]);
@@ -86,9 +87,12 @@ const App = () => {
   const handleSensorData = useCallback((data) => {
     if (validationEnabled) {
       const issues = validateReading(data);
+      setValidationIssues(issues);
       if (issues.length > 0) {
         console.warn('Sensor validatie:', issues.join('; '));
       }
+    } else {
+      setValidationIssues([]);
     }
     setSensorData(prev => {
       const valid = (v) => v != null && !isNaN(v);
@@ -231,6 +235,7 @@ const App = () => {
             symptomIntensity={symptomIntensity}
             setSymptomIntensity={setSymptomIntensity}
             patientName={patientName}
+            validationIssues={validationIssues}
           />
         )}
         {tab === 'trends' && (
