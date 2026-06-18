@@ -30,12 +30,13 @@ export async function shareCSV(points) {
   try {
     await FileSystem.writeAsStringAsync(filePath, csv, { encoding: FileSystem.EncodingType.UTF8 });
     if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(filePath, { mimeType: 'text/csv', dialogTitle: 'Deel meetgegevens' });
+      const uri = await FileSystem.getContentUriAsync(filePath);
+      await Sharing.shareAsync(uri, { mimeType: 'text/csv', dialogTitle: 'Deel meetgegevens' });
     } else {
-      Alert.alert('Exporteren', 'Bestand opgeslagen in cache: ' + fileName);
+      Alert.alert('Exporteren', 'Bestand opgeslagen als: ' + fileName);
     }
-  } catch (_) {
-    // stil falen
+  } catch (e) {
+    Alert.alert('Export mislukt', 'Probeer het opnieuw.');
   }
 }
 
